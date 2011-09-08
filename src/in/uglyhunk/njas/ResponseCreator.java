@@ -191,8 +191,8 @@ public class ResponseCreator{
     private String currWebApp;
     private RequestBean request;
     private ResponseBean response;
-    private static GZIPOutputStream gzipStream;
-    private static final String SERVER_HEADER = "Nano Java Web Server 0.1";
+    private GZIPOutputStream gzipStream;
+    private static final String SERVER_HEADER = "Nano Java App Server 0.1";
     private static Charset charset = Charset.forName("UTF-8");
     private static String documentRoot = Main.getDocumentRoot();
     private static final String DYN_RES_FOLDER = "DYN-RES";
