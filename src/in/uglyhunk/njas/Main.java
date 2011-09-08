@@ -99,6 +99,9 @@ public class Main {
         documentRoot = props.getProperty("documentRoot");
         virtualHost = Boolean.parseBoolean(props.getProperty("virtualHost"));
         
+        // compression
+        compression = Boolean.parseBoolean(props.getProperty("compression"));
+        
         // log file
         ERRLOGFILSIZE = 1024 * Integer.parseInt(props.getProperty("errorLogFileSize"));
         ERRLOGFILECOUNT = Integer.parseInt(props.getProperty("totalErrorLogFiles"));
@@ -173,6 +176,7 @@ public class Main {
         
         logger.log(Level.INFO, "DocumentRoot - {0}", documentRoot);
         logger.log(Level.INFO, "VirtualHost - {0}", virtualHost);
+        logger.log(Level.INFO, "Compression - {0}", compression);
         
         logger.log(Level.INFO, "Error log file size - {0} KB", ERRLOGFILSIZE/1024);
         logger.log(Level.INFO, "Total error log files - {0}", ERRLOGFILECOUNT);
@@ -340,6 +344,11 @@ public class Main {
                             .append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL())
                             .append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL())
                             .append("Server: ").append(server).append(Utilities.getHTTPEOL());
+                
+                if(compression){
+                    respHeaders.append("Content-Encoding: ").append(respBean.getContentEncoding()).append(Utilities.getHTTPEOL());
+                }
+                
                 respHeaders.append(Utilities.getHTTPEOL());
 
                 byte headerBytes[] = respHeaders.toString().getBytes("UTF-8");
@@ -399,6 +408,10 @@ public class Main {
     public static ConcurrentHashMap<Long, ResponseBean> getResponseMap(){
         return responseMap;
     }
+    
+    public static boolean toCompress(){
+        return compression;
+    }
 
     private static Properties props;
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
@@ -437,4 +450,5 @@ public class Main {
 
     private static String documentRoot;
     private static boolean virtualHost;
+    private static boolean compression;
 }

@@ -5,6 +5,7 @@
 
 package in.uglyhunk.njas;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,6 +16,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.logging.Level;
+import java.util.zip.GZIPOutputStream;
 
 /**
  *
@@ -74,17 +76,24 @@ public class ResponseCreator{
                 // read the file from the file system
                 File f = new File(resource);
                 FileInputStream fis = new FileInputStream(f);
-                respContentLength = (int)f.length();
+                int fileLength = (int)f.length();
                 
                 FileChannel fc = fis.getChannel();
-                ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(respContentLength);
+                ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(fileLength);
                 fc.read(responseBodyByteBuffer);
                 responseBodyByteBuffer.flip();
                 respCode = "_200";
 
-                response.setBody(responseBodyByteBuffer);
                 fis.close();
                 fc.close();
+                
+                if(Main.toCompress()){
+                    compress(responseBodyByteBuffer.array());
+                } else {
+                    respContentLength = fileLength;
+                    response.setBody(responseBodyByteBuffer);
+                }
+                
            }
             
         } catch (FileNotFoundException fnfe) {
@@ -109,6 +118,9 @@ public class ResponseCreator{
         String resourceFileExtension = resource.split("\\.")[1];
         String contentType = contentType(resourceFileExtension);
         response.setContentType(contentType);
+        if(Main.toCompress()){
+            response.setContentEncoding("gzip");
+        }
         response.setContentLength(respContentLength + "");
         response.setServer(SERVER_HEADER);
 
@@ -142,10 +154,8 @@ public class ResponseCreator{
     private String body(String curWebApp, String targetStatusCode){
 
         for(ResponseErrorBodyEnum enumStatusCode : ResponseErrorBodyEnum.values()) {
-
             if(targetStatusCode.equals(enumStatusCode.toString()))
                 return ResponseErrorBodyEnum.getHeader() + enumStatusCode.getErrorMessage();
-
         }
         return null;
     }
@@ -160,16 +170,31 @@ public class ResponseCreator{
         response.setBody(responseErrorPageByteBuffer);
         return;
     }
+    
+    private void compress(byte[] content)throws IOException {
+        ByteArrayOutputStream zippedStream = new ByteArrayOutputStream();
+        gzipStream = new GZIPOutputStream(zippedStream);
+        gzipStream.write(content, 0, content.length);
+        gzipStream.flush();
+        gzipStream.close();
+        
+        respContentLength = zippedStream.size();
+        ByteBuffer zippedResponseByteBuffer = ByteBuffer.allocate(respContentLength);
+        zippedResponseByteBuffer.put(zippedStream.toByteArray());
+        zippedResponseByteBuffer.flip();
+        
+        response.setBody(zippedResponseByteBuffer);
+    }
      
     private String respCode;
     private int respContentLength;
     private String currWebApp;
     private RequestBean request;
     private ResponseBean response;
+    private static GZIPOutputStream gzipStream;
     private static final String SERVER_HEADER = "Nano Java Web Server 0.1";
     private static Charset charset = Charset.forName("UTF-8");
     private static String documentRoot = Main.getDocumentRoot();
     private static final String DYN_RES_FOLDER = "DYN-RES";
     private static final String DEFAULT_WEBAPP_FOLDER = "default";
-    
 }
