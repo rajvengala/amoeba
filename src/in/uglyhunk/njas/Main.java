@@ -412,6 +412,22 @@ public class Main {
     public static boolean toCompress(){
         return compression;
     }
+    
+    public static String getClassesFolderName(){
+        return CLASSES;
+    }
+    
+    public static String getDefaultWebAppFolder(){
+        return DEFAULT_WEBAPP_FOLDER;
+    }
+    
+    public static String getErrorPageFolderPath(){
+        return njasHome + File.separator + ERROR_PAGE_FOLDER;
+    }
+    
+    public static String getServerHeader(){
+        return SERVER_HEADER;
+    }
 
     private static Properties props;
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
@@ -451,4 +467,9 @@ public class Main {
     private static String documentRoot;
     private static boolean virtualHost;
     private static boolean compression;
+    
+    private static final String CLASSES = "bin";
+    private static final String DEFAULT_WEBAPP_FOLDER = "default";
+    private static final String ERROR_PAGE_FOLDER = "error";
+    private static final String SERVER_HEADER = "Nano Java App Server 0.1";
 }

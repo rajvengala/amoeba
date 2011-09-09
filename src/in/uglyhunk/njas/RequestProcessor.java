@@ -82,7 +82,6 @@ public class RequestProcessor implements Runnable {
                         // http version
                         reqBean.setHttpVersion(tokens[2]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case ACCEPT:
@@ -90,7 +89,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setAccept(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case ACCEPT_ENCODING:
@@ -98,7 +96,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setAcceptEncoding(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case ACCEPT_LANGUAGE:
@@ -106,7 +103,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setAcceptLanguage(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case ACCEPT_CHARSET:
@@ -114,7 +110,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setAcceptLanguage(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
                     
                 case USER_AGENT:
@@ -122,7 +117,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setUserAgent(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case CONTENT_TYPE:
@@ -130,7 +124,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setContentType(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case CONTENT_LENGTH:
@@ -138,7 +131,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setContentLength(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case CACHE_CONTROL:
@@ -146,7 +138,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setCacheControl(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case CONNECTION:
@@ -154,7 +145,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setConnection(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case COOKIE:
@@ -162,7 +152,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setCookie(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case HOST:
@@ -170,7 +159,6 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length >= 2) {
                         reqBean.setHost(tokens[1].trim());
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 case REFERER:
@@ -178,13 +166,11 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2) {
                         reqBean.setReferer(tokens[1]);
                     }
-                    //Main.getLogger().finest(line);
                     break;
 
                 default:
                     if(line.length() == reqBean.getContentLength()){
                         reqBean.setBody(line);
-                    //    Main.getLogger().finest(line);
                     }
 
             }

@@ -18,7 +18,8 @@
         <mkdir dir="${dist.dir}/njas/bin" />
         <mkdir dir="${dist.dir}/njas/lib" />
         <mkdir dir="${dist.dir}/njas/conf" />
-
+        <mkdir dir="${dist.dir}/njas/error" />
+        
         <move file="${dist.dir}/njas.jar" todir="${dist.dir}/njas/lib" />
         <copy todir="${dist.dir}/njas/bin">
             <fileset dir="scripts"/>
@@ -28,6 +29,9 @@
             <fileset dir="conf"/>
         </copy>
 
+        <copy todir="${dist.dir}/njas/error">
+            <fileset dir="error"/>
+        </copy>
     </target>
     <!--
 

@@ -14,7 +14,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
 
@@ -31,7 +30,7 @@ public class ResponseCreator{
         response.setSelectionKey(request.getSelectionKey());
     }
 
-    public ResponseBean process() throws UnsupportedEncodingException {
+    public ResponseBean process() throws FileNotFoundException, IOException, UnsupportedEncodingException {
             // If virtual host is set to true in njws.conf
             // append host string value from the http request header
             // to the document root and then append the requested
@@ -44,14 +43,13 @@ public class ResponseCreator{
             if(rawResource.equals("/"))
                 rawResource = "/index.html";
 
-            currWebApp = request.getHost();
-
+            String documentRoot = Main.getDocumentRoot();
             if(Main.isVirtualHost()) {
                 resource.append(documentRoot).append(File.separator)
-                        .append(currWebApp).append(rawResource);
+                        .append(request.getHost()).append(rawResource);
             } else {
                 resource.append(documentRoot).append(File.separator)
-                        .append(DEFAULT_WEBAPP_FOLDER).append(rawResource);
+                        .append(Main.getDefaultWebAppFolder()).append(rawResource);
             }
 
             response.setAbsoluteResource(resource.toString());
@@ -62,11 +60,11 @@ public class ResponseCreator{
             return response;
     }
 
-    private void prepareResponseBody(String resource) {
+    private void prepareResponseBody(String resource) throws FileNotFoundException, IOException{
        try {
-            // if the resource absolute path contains dyn-req string
+            // if the resource absolute path contains "bin" string
             // pass them to user classes un dyn-req directory
-            if(resource.contains(DYN_RES_FOLDER)) {
+            if(resource.contains(Main.getClassesFolderName())) {
                 // have a properties file in each webapp folder
                 // and load appropriate class
                 // class loaded should be different for each
@@ -99,12 +97,12 @@ public class ResponseCreator{
         } catch (FileNotFoundException fnfe) {
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             respCode = "_404";
-            getErrorResponse(respCode);
+            setErrorResponse(respCode);
             return;
         } catch (IOException ioe) {
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
             respCode = "_500";
-            getErrorResponse(respCode);
+            setErrorResponse(respCode);
             return;
         }
         return;
@@ -122,7 +120,7 @@ public class ResponseCreator{
             response.setContentEncoding("gzip");
         }
         response.setContentLength(respContentLength + "");
-        response.setServer(SERVER_HEADER);
+        response.setServer(Main.getServerHeader());
 
         return;
     }
@@ -151,29 +149,31 @@ public class ResponseCreator{
         return "text/html";
     }
 
-    private String body(String curWebApp, String targetStatusCode){
-
-        for(ResponseErrorBodyEnum enumStatusCode : ResponseErrorBodyEnum.values()) {
-            if(targetStatusCode.equals(enumStatusCode.toString()))
-                return ResponseErrorBodyEnum.getHeader() + enumStatusCode.getErrorMessage();
+    private void setErrorResponse(String statusCode) throws FileNotFoundException, IOException{
+        File f = new File(Main.getErrorPageFolderPath() + File.separator + statusCode.split("_")[1] + ".html");
+        FileInputStream fis = new FileInputStream(f);
+        int fileLength = (int)f.length();
+                
+        FileChannel fc = fis.getChannel();
+        ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(fileLength);
+        fc.read(responseBodyByteBuffer);
+        responseBodyByteBuffer.flip();
+        
+        fis.close();
+        fc.close();
+                
+        if(Main.toCompress()){
+            compress(responseBodyByteBuffer.array());
+        } else {
+            respContentLength = fileLength;
+            response.setBody(responseBodyByteBuffer);
         }
-        return null;
-    }
-
-    private void getErrorResponse(String statusCode){
-        String errorPage = body(currWebApp, statusCode); // still pending
-
-        ByteBuffer responseErrorPageByteBuffer = charset.encode(errorPage);
-        responseErrorPageByteBuffer.flip();
-        respContentLength = responseErrorPageByteBuffer.capacity();
-
-        response.setBody(responseErrorPageByteBuffer);
         return;
     }
     
     private void compress(byte[] content)throws IOException {
         ByteArrayOutputStream zippedStream = new ByteArrayOutputStream();
-        gzipStream = new GZIPOutputStream(zippedStream);
+        GZIPOutputStream gzipStream = new GZIPOutputStream(zippedStream);
         gzipStream.write(content, 0, content.length);
         gzipStream.flush();
         gzipStream.close();
@@ -188,13 +188,6 @@ public class ResponseCreator{
      
     private String respCode;
     private int respContentLength;
-    private String currWebApp;
     private RequestBean request;
     private ResponseBean response;
-    private GZIPOutputStream gzipStream;
-    private static final String SERVER_HEADER = "Nano Java App Server 0.1";
-    private static Charset charset = Charset.forName("UTF-8");
-    private static String documentRoot = Main.getDocumentRoot();
-    private static final String DYN_RES_FOLDER = "DYN-RES";
-    private static final String DEFAULT_WEBAPP_FOLDER = "default";
 }
