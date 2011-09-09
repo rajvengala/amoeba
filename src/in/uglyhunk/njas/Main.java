@@ -105,6 +105,10 @@ public class Main {
         // log file
         ERRLOGFILSIZE = 1024 * Integer.parseInt(props.getProperty("errorLogFileSize"));
         ERRLOGFILECOUNT = Integer.parseInt(props.getProperty("totalErrorLogFiles"));
+        
+        // maintenance
+        maintenance = Boolean.parseBoolean(props.getProperty("maintenance"));
+        
     }
 
     private static void setupHandlers() {
@@ -180,6 +184,8 @@ public class Main {
         
         logger.log(Level.INFO, "Error log file size - {0} KB", ERRLOGFILSIZE/1024);
         logger.log(Level.INFO, "Total error log files - {0}", ERRLOGFILECOUNT);
+        
+        logger.log(Level.INFO, "In maintenance - {0}", maintenance);
     }
    
     private static void setupQueues(){
@@ -428,6 +434,10 @@ public class Main {
     public static String getServerHeader(){
         return SERVER_HEADER;
     }
+    
+    public static boolean inMaintenance(){
+        return maintenance;
+    }
 
     private static Properties props;
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
@@ -467,6 +477,8 @@ public class Main {
     private static String documentRoot;
     private static boolean virtualHost;
     private static boolean compression;
+    
+    private static boolean maintenance;
     
     private static final String CLASSES = "bin";
     private static final String DEFAULT_WEBAPP_FOLDER = "default";

@@ -34,45 +34,50 @@ public class ResponseCreator{
             // If virtual host is set to true in njws.conf
             // append host string value from the http request header
             // to the document root and then append the requested
-            // resource name to get the absolute path
+            // resourcePath name to get the absolute path
 
             // If virtual host is set to false, append "default" and then
-            // append resource name to the document root for absolute path
-            StringBuilder resource = new StringBuilder();
-            String rawResource = request.getResource();
-            if(rawResource.equals("/"))
-                rawResource = "/index.html";
-
+            // append resourcePath name to the document root for absolute path
+            StringBuilder resourcePath = new StringBuilder();
+            String resource = request.getResource();
+            if(resource.equals("/"))
+                resource = "/index.html";
+            
             String documentRoot = Main.getDocumentRoot();
             if(Main.isVirtualHost()) {
-                resource.append(documentRoot).append(File.separator)
-                        .append(request.getHost()).append(rawResource);
+                resourcePath.append(documentRoot).append(File.separator)
+                        .append(request.getHost()).append(resource);
             } else {
-                resource.append(documentRoot).append(File.separator)
-                        .append(Main.getDefaultWebAppFolder()).append(rawResource);
+                resourcePath.append(documentRoot).append(File.separator)
+                        .append(Main.getDefaultWebAppFolder()).append(resource);
             }
+            response.setAbsoluteResource(resourcePath.toString());
 
-            response.setAbsoluteResource(resource.toString());
-
-            prepareResponseBody(resource.toString());
-            prepareResponseHeaders(resource.toString());
-            
+            // if in maintenance, serve 503 response for all the requests
+            if(Main.inMaintenance()){
+                respCode = "_503";
+                setErrorResponse(respCode, resource);
+            } else {
+                // non-maintenance mode operation
+                prepareResponseBody(resource, resourcePath.toString());
+            }
+            prepareResponseHeaders(resource);
             return response;
     }
 
-    private void prepareResponseBody(String resource) throws FileNotFoundException, IOException{
+    private void prepareResponseBody(String resource, String resourcePath) throws FileNotFoundException, IOException{
        try {
-            // if the resource absolute path contains "bin" string
+            // if the resourcePath absolute path contains "bin" string
             // pass them to user classes un dyn-req directory
-            if(resource.contains(Main.getClassesFolderName())) {
+            if(resourcePath.contains(Main.getClassesFolderName())) {
                 // have a properties file in each webapp folder
                 // and load appropriate class
                 // class loaded should be different for each
                 // webapp
             } else {
-                // if the request is for a static resource
+                // if the request is for a static resourcePath
                 // read the file from the file system
-                File f = new File(resource);
+                File f = new File(resourcePath);
                 FileInputStream fis = new FileInputStream(f);
                 int fileLength = (int)f.length();
                 
@@ -97,12 +102,12 @@ public class ResponseCreator{
         } catch (FileNotFoundException fnfe) {
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             respCode = "_404";
-            setErrorResponse(respCode);
+            setErrorResponse(respCode, resource);
             return;
         } catch (IOException ioe) {
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
             respCode = "_500";
-            setErrorResponse(respCode);
+            setErrorResponse(respCode, resource);
             return;
         }
         return;
@@ -113,9 +118,14 @@ public class ResponseCreator{
         response.setStatusCode(respCode.split("_")[1]);
         response.setStatusLine(statusLine);
         
-        String resourceFileExtension = resource.split("\\.")[1];
-        String contentType = contentType(resourceFileExtension);
-        response.setContentType(contentType);
+        if(resource.contains(".")){
+            String resourceFileExtension = resource.split("\\.")[1];
+            String contentType = contentType(resourceFileExtension);
+            response.setContentType(contentType);
+        } else {
+            response.setContentType(contentType("html"));
+        }
+        
         if(Main.toCompress()){
             response.setContentEncoding("gzip");
         }
@@ -149,8 +159,13 @@ public class ResponseCreator{
         return "text/html";
     }
 
-    private void setErrorResponse(String statusCode) throws FileNotFoundException, IOException{
-        File f = new File(Main.getErrorPageFolderPath() + File.separator + statusCode.split("_")[1] + ".html");
+    private void setErrorResponse(String respCode, String resource) throws FileNotFoundException, IOException{
+        
+        File f = new File(Main.getErrorPageFolderPath() + File.separator + resource);
+        if(!f.exists()){
+            f = new File(Main.getErrorPageFolderPath() + File.separator + respCode.split("_")[1] + ".html");
+        }
+        
         FileInputStream fis = new FileInputStream(f);
         int fileLength = (int)f.length();
                 
