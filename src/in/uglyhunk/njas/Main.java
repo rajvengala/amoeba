@@ -352,7 +352,10 @@ public class Main {
                             .append("Server: ").append(server).append(Utilities.getHTTPEOL());
                 
                 if(compression){
-                    respHeaders.append("Content-Encoding: ").append(respBean.getContentEncoding()).append(Utilities.getHTTPEOL());
+                    String contentEncoding = respBean.getContentEncoding();
+                    if(contentEncoding != null)
+                        respHeaders.append("Content-Encoding: ").append(respBean.getContentEncoding())
+                                                                .append(Utilities.getHTTPEOL());
                 }
                 
                 respHeaders.append(Utilities.getHTTPEOL());

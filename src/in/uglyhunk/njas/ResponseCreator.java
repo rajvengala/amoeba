@@ -42,6 +42,11 @@ public class ResponseCreator{
             String resource = request.getResource();
             if(resource.equals("/"))
                 resource = "/index.html";
+        
+            if(resource.contains("."))
+                resourceType = resource.split("\\.")[1];
+            else
+                resourceType = "html";
             
             String documentRoot = Main.getDocumentRoot();
             if(Main.isVirtualHost()) {
@@ -61,7 +66,7 @@ public class ResponseCreator{
                 // non-maintenance mode operation
                 prepareResponseBody(resource, resourcePath.toString());
             }
-            prepareResponseHeaders(resource);
+            prepareResponseHeaders();
             return response;
     }
 
@@ -90,15 +95,13 @@ public class ResponseCreator{
                 fis.close();
                 fc.close();
                 
-                if(Main.toCompress()){
+                if(Main.toCompress() && isCompressable(resourceType)){
                     compress(responseBodyByteBuffer.array());
                 } else {
                     respContentLength = fileLength;
                     response.setBody(responseBodyByteBuffer);
                 }
-                
            }
-            
         } catch (FileNotFoundException fnfe) {
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             respCode = "_404";
@@ -113,22 +116,18 @@ public class ResponseCreator{
         return;
     }
 
-    private void prepareResponseHeaders(String resource) throws UnsupportedEncodingException {
+    private void prepareResponseHeaders() throws UnsupportedEncodingException {
         String statusLine = statusLine(respCode);
         response.setStatusCode(respCode.split("_")[1]);
         response.setStatusLine(statusLine);
         
-        if(resource.contains(".")){
-            String resourceFileExtension = resource.split("\\.")[1];
-            String contentType = contentType(resourceFileExtension);
-            response.setContentType(contentType);
-        } else {
-            response.setContentType(contentType("html"));
-        }
+        String contentType = contentType(resourceType);
+        response.setContentType(contentType);
         
-        if(Main.toCompress()){
+        if(Main.toCompress() && isCompressable(resourceType)){
             response.setContentEncoding("gzip");
         }
+        
         response.setContentLength(respContentLength + "");
         response.setServer(Main.getServerHeader());
 
@@ -136,9 +135,7 @@ public class ResponseCreator{
     }
 
     private String statusLine(String targetStatusCode){
-
         for(ResponseStatusLineEnum enumStatusCode : ResponseStatusLineEnum.values()) {
-
             if(targetStatusCode.equals(enumStatusCode.toString()))
                 return enumStatusCode.getStatusLine();
 
@@ -146,9 +143,9 @@ public class ResponseCreator{
         return null;
     }
 
-    private String contentType(String fileExtension) {
+    private String contentType(String resourceType) {
         for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
-            if(fileExtension.equalsIgnoreCase(enumContentType.toString())){
+            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
                 if(enumContentType.isBinary()) {
                     return enumContentType.getContentType();
                 } else {
@@ -157,6 +154,15 @@ public class ResponseCreator{
             }
         }
         return "text/html";
+    }
+    
+    private boolean isCompressable(String resourceType){
+        for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
+            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
+                return enumContentType.isCompressable();
+            }
+        }
+        return true;
     }
 
     private void setErrorResponse(String respCode, String resource) throws FileNotFoundException, IOException{
@@ -205,4 +211,5 @@ public class ResponseCreator{
     private int respContentLength;
     private RequestBean request;
     private ResponseBean response;
+    private String resourceType;
 }

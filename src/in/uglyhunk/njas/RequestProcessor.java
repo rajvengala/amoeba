@@ -51,8 +51,8 @@ public class RequestProcessor implements Runnable {
     }
 
     private void parseRequest(RequestBean reqBean, String rawRequest) {
+        
         reqBean.setRawRequest(rawRequest);
-                
         String requestLines[] = rawRequest.split(Utilities.getHTTPEOL());
         
         for(String line: requestLines) {
@@ -179,7 +179,6 @@ public class RequestProcessor implements Runnable {
 
     private RequestHeadersEnum matchRequestHeader(String requestLine){
         for(RequestHeadersEnum tokenEnum : RequestHeadersEnum.values()) {
-
             if(requestLine.contains(tokenEnum.getRequestHeaderName())){
                 return tokenEnum;
             }
