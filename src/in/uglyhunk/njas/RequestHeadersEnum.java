@@ -11,10 +11,22 @@ package in.uglyhunk.njas;
  * @author uglyhunk
  */
 public enum RequestHeadersEnum {
-    GET ("GET"), POST ("POST"), ACCEPT ("Accept"), ACCEPT_ENCODING ("Accept-Encoding"),
-    ACCEPT_LANGUAGE ("Accept-Language"), ACCEPT_CHARSET ("Accept-Charset"), USER_AGENT ("User-Agent"),
-    CONTENT_TYPE ("Content-Type"), CONTENT_LENGTH ("Content-Length"), CACHE_CONTROL ("Cache-Control"),
-    CONNECTION ("Connection"), COOKIE ("Cookie"), HOST ("Host"), REFERER ("Referer"), NONE("NONE");
+    GET ("GET"), POST ("POST"), 
+    ACCEPT ("Accept"), 
+    ACCEPT_ENCODING ("Accept-Encoding"),
+    ACCEPT_LANGUAGE ("Accept-Language"), 
+    ACCEPT_CHARSET ("Accept-Charset"), 
+    USER_AGENT ("User-Agent"),
+    CONTENT_TYPE ("Content-Type"), 
+    CONTENT_LENGTH ("Content-Length"), 
+    CACHE_CONTROL ("Cache-Control"),
+    CONNECTION ("Connection"), 
+    COOKIE ("Cookie"), 
+    HOST ("Host"), 
+    REFERER ("Referer"), 
+    IF_MODIFIED_SINCE("If-Modified-Since"),
+    IF_NONE_MATCH("If-None-Match"),
+    NONE("NONE");
 
     RequestHeadersEnum(String requestHeaderName) {
         this.requestHeaderName = requestHeaderName;

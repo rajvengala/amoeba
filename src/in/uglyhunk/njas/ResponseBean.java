@@ -170,6 +170,35 @@ public class ResponseBean {
         this.selectionKey = selectionKey;
     }
     
+    
+    /**
+     * @return the getLastModified
+     */
+    public long getLastModified() {
+        return lastModified;
+    }
+
+    /**
+     * @param getLastModified the getLastModified to set
+     */
+    public void setLastModified(long lastModified) {
+        this.lastModified = lastModified;
+    }
+
+    /**
+     * @return the eTag
+     */
+    public String getETag() {
+        return eTag;
+    }
+
+    /**
+     * @param eTag the eTag to set
+     */
+    public void setETag(String eTag) {
+        this.eTag = eTag;
+    }
+    
     private String statusCode;
     private String statusLine;
     private String contentType;
@@ -178,6 +207,8 @@ public class ResponseBean {
     private String connection;
     private String contentEncoding;
     private ByteBuffer body;
+    private long lastModified;
+    private String eTag;
     private SocketChannel socketChannel;
     private String absoluteResource;
     private SelectionKey selectionKey;

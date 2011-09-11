@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -53,6 +54,7 @@ public class Main {
     }
     
     private static void loadConfiguration(){
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         njasHome = System.getenv("NJAS_HOME");
         if(njasHome == null){
             System.out.println("NJAS_HOME environemnt variable is not set");
@@ -108,6 +110,9 @@ public class Main {
         
         // maintenance
         maintenance = Boolean.parseBoolean(props.getProperty("maintenance"));
+        
+        // cache
+        maxAge = Long.parseLong(props.getProperty("maxAge"));
         
     }
 
@@ -186,6 +191,7 @@ public class Main {
         logger.log(Level.INFO, "Total error log files - {0}", ERRLOGFILECOUNT);
         
         logger.log(Level.INFO, "In maintenance - {0}", maintenance);
+        logger.log(Level.INFO, "Max Age - {0} seconds for cacheable resources", maxAge);
     }
    
     private static void setupQueues(){
@@ -307,7 +313,7 @@ public class Main {
             // a request processing thread pool
             RequestProcessor requestProcessor = new RequestProcessor();
             requestProcessingThreadPool.execute(requestProcessor);
-            Thread.sleep(20);
+            Thread.sleep(40);
         } catch(IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
@@ -329,7 +335,6 @@ public class Main {
         try {
             Long timestamp = responseOrderQueue.peek();
             if(timestamp != null && responseMap.containsKey(timestamp)){
-                //System.out.println(timestamp);
                 ResponseBean respBean = responseMap.get(timestamp);
 
                 // remove the request timestamp from responseOrderQueue
@@ -342,15 +347,20 @@ public class Main {
                 String server = respBean.getServer();
                 String statusCode = respBean.getStatusCode();
                 String resource = respBean.getAbsoluteResource();
+                long lastModified = respBean.getLastModified();
+                String eTag = respBean.getETag();
                 ByteBuffer respBodyBuffer = respBean.getBody();
-                respBodyBuffer.flip();
+                if(respBodyBuffer != null)
+                    respBodyBuffer.flip();
 
                 StringBuilder respHeaders = new StringBuilder();
                 respHeaders.append(statusLine).append(Utilities.getHTTPEOL())
                             .append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL())
-                            .append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL())
                             .append("Server: ").append(server).append(Utilities.getHTTPEOL());
                 
+                if(contentLength != null)
+                    respHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
+                                
                 if(compression){
                     String contentEncoding = respBean.getContentEncoding();
                     if(contentEncoding != null)
@@ -358,6 +368,18 @@ public class Main {
                                                                 .append(Utilities.getHTTPEOL());
                 }
                 
+                if(lastModified != 0){
+                    String lastModifiedValue = sdf.format(new Date(lastModified));
+                    respHeaders.append("Last-Modified: ").append(lastModifiedValue).append(Utilities.getHTTPEOL());
+                }
+                
+                if(eTag != null){
+                    respHeaders.append("ETag: \"").append(eTag).append("\"").append(Utilities.getHTTPEOL());
+                    respHeaders.append("Cache-Control: max-age=").append(maxAge).append(Utilities.getHTTPEOL());
+                }
+                
+                respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis())))
+                                            .append(Utilities.getHTTPEOL());
                 respHeaders.append(Utilities.getHTTPEOL());
 
                 byte headerBytes[] = respHeaders.toString().getBytes("UTF-8");
@@ -365,12 +387,20 @@ public class Main {
                 respHeadersBuffer.put(headerBytes);
                 respHeadersBuffer.flip();
 
-                int respSize = respBodyBuffer.capacity() + respHeadersBuffer.capacity();
+                int respSize = 0;
+                if(respBodyBuffer != null){
+                    respSize = respBodyBuffer.capacity() + respHeadersBuffer.capacity();
+                } else {
+                    respSize = respHeadersBuffer.capacity();
+                }
+                
                 ByteBuffer respByteBuffer = ByteBuffer.allocate(respSize);
                 respByteBuffer.put(respHeadersBuffer.array());
-                respByteBuffer.put(respBodyBuffer.array());
+                
+                if(respBodyBuffer != null)
+                    respByteBuffer.put(respBodyBuffer.array());
+                
                 respByteBuffer.flip();
-
                 socketChannel = (SocketChannel) key.channel();
                 int totalBytesSent = socketChannel.write(respByteBuffer);
 
@@ -378,8 +408,8 @@ public class Main {
                 Main.getLogger().log(Level.FINER, "{0} => {1} <= {2}, {3} ({4}) bytes", new Object[]{clientAddr, resource, statusCode, totalBytesSent, contentLength});
             } else {
                 key.interestOps(SelectionKey.OP_WRITE);
-            key.selector().wakeup();
-            return;
+                key.selector().wakeup();
+                return;
             }
             key.interestOps(SelectionKey.OP_READ);
             key.selector().wakeup();
@@ -441,6 +471,10 @@ public class Main {
     public static boolean inMaintenance(){
         return maintenance;
     }
+    
+    public static SimpleDateFormat getDateFormat(){
+        return sdf;
+    }
 
     private static Properties props;
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
@@ -483,8 +517,11 @@ public class Main {
     
     private static boolean maintenance;
     
+    private static long maxAge;
+    
     private static final String CLASSES = "bin";
     private static final String DEFAULT_WEBAPP_FOLDER = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
     private static final String SERVER_HEADER = "Nano Java App Server 0.1";
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
 }

@@ -14,8 +14,11 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
+import javax.xml.bind.DatatypeConverter;
 
 /**
  *
@@ -30,7 +33,7 @@ public class ResponseCreator{
         response.setSelectionKey(request.getSelectionKey());
     }
 
-    public ResponseBean process() throws FileNotFoundException, IOException, UnsupportedEncodingException {
+    public ResponseBean process() throws NoSuchAlgorithmException, FileNotFoundException, IOException, UnsupportedEncodingException {
             // If virtual host is set to true in njws.conf
             // append host string value from the http request header
             // to the document root and then append the requested
@@ -38,7 +41,7 @@ public class ResponseCreator{
 
             // If virtual host is set to false, append "default" and then
             // append resourcePath name to the document root for absolute path
-            StringBuilder resourcePath = new StringBuilder();
+            resourcePath = new StringBuilder();
             String resource = request.getResource();
             if(resource.equals("/"))
                 resource = "/index.html";
@@ -64,17 +67,17 @@ public class ResponseCreator{
                 setErrorResponse(respCode, resource);
             } else {
                 // non-maintenance mode operation
-                prepareResponseBody(resource, resourcePath.toString());
+                prepareResponseBody(resource);
             }
             prepareResponseHeaders();
             return response;
     }
 
-    private void prepareResponseBody(String resource, String resourcePath) throws FileNotFoundException, IOException{
+    private void prepareResponseBody(String resource) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
        try {
             // if the resourcePath absolute path contains "bin" string
             // pass them to user classes un dyn-req directory
-            if(resourcePath.contains(Main.getClassesFolderName())) {
+            if(resourcePath.toString().contains(Main.getClassesFolderName())) {
                 // have a properties file in each webapp folder
                 // and load appropriate class
                 // class loaded should be different for each
@@ -82,12 +85,37 @@ public class ResponseCreator{
             } else {
                 // if the request is for a static resourcePath
                 // read the file from the file system
-                File f = new File(resourcePath);
+                File f = new File(resourcePath.toString());
+                lastModified = f.lastModified();
+                
+                // check if the request is conditional
+                // retrieve eTag header if exists
+                String reqETag = request.getETag();
+                eTag = calculateETag();
+                if(reqETag != null && reqETag.equals(eTag)){
+                    respCode = "_304";
+                    respContentLength = 0;
+                    response.setBody(null);
+                    return;
+                }
+                    
+                // check if the request is conditional
+                // retrieve if-modified-since header if exists
+                long ifModifiedSince = request.getIfModifiedSince();
+                if(ifModifiedSince != 0 && lastModified == ifModifiedSince){
+                    respCode = "_304";
+                    respContentLength = 0;
+                    response.setBody(null);
+                    return;
+                }
+                                
+                // client does not have this resource
+                // read from filesystem/cache
                 FileInputStream fis = new FileInputStream(f);
-                int fileLength = (int)f.length();
+                resourceSize = (int)f.length();
                 
                 FileChannel fc = fis.getChannel();
-                ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(fileLength);
+                ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
                 fc.read(responseBodyByteBuffer);
                 responseBodyByteBuffer.flip();
                 respCode = "_200";
@@ -98,7 +126,7 @@ public class ResponseCreator{
                 if(Main.toCompress() && isCompressable(resourceType)){
                     compress(responseBodyByteBuffer.array());
                 } else {
-                    respContentLength = fileLength;
+                    respContentLength = resourceSize;
                     response.setBody(responseBodyByteBuffer);
                 }
            }
@@ -121,19 +149,36 @@ public class ResponseCreator{
         response.setStatusCode(respCode.split("_")[1]);
         response.setStatusLine(statusLine);
         
+        // set last modified value and etag value
+        // if resource is cacheable
+        if(isCacheable(resourceType)){
+            response.setLastModified(lastModified);
+            response.setETag(eTag);
+        }
+        
         String contentType = contentType(resourceType);
         response.setContentType(contentType);
         
-        if(Main.toCompress() && isCompressable(resourceType)){
-            response.setContentEncoding("gzip");
+        if(respContentLength != 0){
+            response.setContentLength(respContentLength + "");
+            // if compression is enabled and resource
+            // is compressable, do it
+            if(Main.toCompress() && isCompressable(resourceType)){
+                response.setContentEncoding("gzip");
+            }
         }
-        
-        response.setContentLength(respContentLength + "");
         response.setServer(Main.getServerHeader());
-
         return;
     }
 
+    private String calculateETag() throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        String eTagSource = resourcePath.toString() + lastModified;
+        byte[] eTagSouceBytes = eTagSource.getBytes("UTF-8");
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        byte[] digest = md5.digest(eTagSouceBytes);
+        return DatatypeConverter.printBase64Binary(digest);
+    }
+    
     private String statusLine(String targetStatusCode){
         for(ResponseStatusLineEnum enumStatusCode : ResponseStatusLineEnum.values()) {
             if(targetStatusCode.equals(enumStatusCode.toString()))
@@ -160,6 +205,15 @@ public class ResponseCreator{
         for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
             if(resourceType.equalsIgnoreCase(enumContentType.toString())){
                 return enumContentType.isCompressable();
+            }
+        }
+        return true;
+    }
+    
+    private boolean isCacheable(String resourceType){
+        for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
+            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
+                return enumContentType.isCacheable();
             }
         }
         return true;
@@ -212,4 +266,8 @@ public class ResponseCreator{
     private RequestBean request;
     private ResponseBean response;
     private String resourceType;
+    private long lastModified;
+    private StringBuilder resourcePath;
+    private int resourceSize;
+    private String eTag;
 }

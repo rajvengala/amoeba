@@ -10,6 +10,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.logging.Level;
 
 
@@ -47,10 +49,14 @@ public class RequestProcessor implements Runnable {
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         } catch(InterruptedException ie){
             Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
+        } catch(ParseException pe){
+            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(pe), pe);
+        } catch(NoSuchAlgorithmException nsae){
+            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(nsae), nsae);
         }
     }
 
-    private void parseRequest(RequestBean reqBean, String rawRequest) {
+    private void parseRequest(RequestBean reqBean, String rawRequest) throws ParseException {
         
         reqBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getHTTPEOL());
@@ -153,7 +159,24 @@ public class RequestProcessor implements Runnable {
                         reqBean.setCookie(tokens[1]);
                     }
                     break;
+                 
+                case IF_MODIFIED_SINCE:
+                    tokens = line.split(":");
+                    if(tokens.length == 2){
+                        String ifModifiedSince = tokens[1].trim();
+                        long lastModifiedTime = Main.getDateFormat().parse(ifModifiedSince).getTime();
+                        reqBean.setIfModifiedSince(lastModifiedTime);
+                    }
+                    break;
 
+                case IF_NONE_MATCH:
+                    tokens = line.split(":");
+                    if(tokens.length == 2){
+                        // ETag in request header is enclosed in double quotes
+                        reqBean.setETag(tokens[1].trim().split("\"")[1]);
+                    }
+                    break;
+                    
                 case HOST:
                     tokens = line.split(":");
                     if(tokens.length >= 2) {
@@ -172,7 +195,6 @@ public class RequestProcessor implements Runnable {
                     if(line.length() == reqBean.getContentLength()){
                         reqBean.setBody(line);
                     }
-
             }
         }
     }

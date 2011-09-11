@@ -311,6 +311,36 @@ public class RequestBean {
     public void setRawRequestBytes(byte[] rawRequestBytes) {
         this.rawRequestBytes = rawRequestBytes;
     }
+    
+    
+    /**
+     * @return the ifModifiedSince
+     */
+    public long getIfModifiedSince() {
+        return ifModifiedSince;
+    }
+
+    /**
+     * @param ifModifiedSince the ifModifiedSince to set
+     */
+    public void setIfModifiedSince(long ifModifiedSince) {
+        this.ifModifiedSince = ifModifiedSince;
+    }
+
+    /**
+     * @return the eTag
+     */
+    public String getETag() {
+        return eTag;
+    }
+
+    /**
+     * @param eTag the eTag to set
+     */
+    public void setETag(String eTag) {
+        this.eTag = eTag;
+    }
+  
 
     private String method;
     private String resource;
@@ -332,7 +362,7 @@ public class RequestBean {
     private String rawRequest;
     private SelectionKey selectionKey;
     private long timestamp;
+    private long ifModifiedSince;
+    private String eTag;
     private byte[] rawRequestBytes;
-
-  
 }
