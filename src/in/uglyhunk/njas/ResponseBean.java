@@ -199,6 +199,14 @@ public class ResponseBean {
         this.eTag = eTag;
     }
     
+    public void setresponseCacheTag(String tag){
+        this.responseCacheTag = tag;
+    }
+    
+    public String getresponseCacheTag(){
+        return responseCacheTag;
+    }
+        
     private String statusCode;
     private String statusLine;
     private String contentType;
@@ -212,4 +220,5 @@ public class ResponseBean {
     private SocketChannel socketChannel;
     private String absoluteResource;
     private SelectionKey selectionKey;
+    private String responseCacheTag;
 }

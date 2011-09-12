@@ -114,6 +114,9 @@ public class Main {
         // cache
         maxAge = Long.parseLong(props.getProperty("maxAge"));
         
+        initialCacheCapacity = Integer.parseInt(props.getProperty("initialCacheCapacity"));
+        cacheLoadFactor = Float.parseFloat(props.getProperty("cacheLoadFactor"));
+        cacheSize = Integer.parseInt(props.getProperty("cacheSize"));
     }
 
     private static void setupHandlers() {
@@ -192,12 +195,17 @@ public class Main {
         
         logger.log(Level.INFO, "In maintenance - {0}", maintenance);
         logger.log(Level.INFO, "Max Age - {0} seconds for cacheable resources", maxAge);
+        
+        logger.log(Level.INFO, "Cache : Initial capacity - {0}", initialCacheCapacity);
+        logger.log(Level.INFO, "Cache : Load factor - {0}", cacheLoadFactor);
+        logger.log(Level.INFO, "Cache : Size - {0}", cacheSize);
     }
    
     private static void setupQueues(){
         requestQueue = new ArrayBlockingQueue<RequestBean>(requestQueueLength, true);
         responseMap = new ConcurrentHashMap<Long, ResponseBean>();
         responseOrderQueue = new ArrayBlockingQueue<Long>(responseOrderQueueLength, true);
+        lruCache = new LRUResourceCache(cacheSize);
     }
     
     private static void setupWorkerThreads() {
@@ -348,6 +356,10 @@ public class Main {
                 String statusCode = respBean.getStatusCode();
                 String resource = respBean.getAbsoluteResource();
                 long lastModified = respBean.getLastModified();
+                String respCacheTag = respBean.getresponseCacheTag();
+                if(respCacheTag == null)
+                    respCacheTag = "";
+                 
                 String eTag = respBean.getETag();
                 ByteBuffer respBodyBuffer = respBean.getBody();
                 if(respBodyBuffer != null)
@@ -405,7 +417,10 @@ public class Main {
                 int totalBytesSent = socketChannel.write(respByteBuffer);
 
                 String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
-                Main.getLogger().log(Level.FINER, "{0} => {1} <= {2}, {3} ({4}) bytes", new Object[]{clientAddr, resource, statusCode, totalBytesSent, contentLength});
+               
+                Main.getLogger().log(Level.FINER, "{0} => {1} <= {2}, {3} bytes {4} ", 
+                                                        new Object[]{clientAddr, resource, 
+                                                            statusCode, totalBytesSent, respCacheTag});
             } else {
                 key.interestOps(SelectionKey.OP_WRITE);
                 key.selector().wakeup();
@@ -475,7 +490,19 @@ public class Main {
     public static SimpleDateFormat getDateFormat(){
         return sdf;
     }
-
+    
+    public static int getInitialCacheCapacity(){
+        return initialCacheCapacity;
+    }
+    
+    public static float getCacheLoadFactor(){
+        return cacheLoadFactor;
+    }
+  
+    public static LRUResourceCache getCache(){
+        return lruCache;
+    }
+    
     private static Properties props;
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
     private static ConsoleHandler console;
@@ -518,6 +545,12 @@ public class Main {
     private static boolean maintenance;
     
     private static long maxAge;
+   
+    private static int initialCacheCapacity;
+    private static float cacheLoadFactor;
+    private static int cacheSize;
+    
+    private static LRUResourceCache lruCache;
     
     private static final String CLASSES = "bin";
     private static final String DEFAULT_WEBAPP_FOLDER = "default";

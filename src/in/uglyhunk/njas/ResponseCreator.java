@@ -84,12 +84,13 @@ public class ResponseCreator{
                 // webapp
             } else {
                 // if the request is for a static resourcePath
-                // read the file from the file system
+                // get the resource info from the file system
                 File f = new File(resourcePath.toString());
                 lastModified = f.lastModified();
                 
-                // check if the request is conditional
-                // retrieve eTag header if exists
+                // check if the request is conditional,
+                // retrieve eTag header if exists in the request
+                // hearders for thie resource
                 String reqETag = request.getETag();
                 eTag = calculateETag();
                 if(reqETag != null && reqETag.equals(eTag)){
@@ -110,22 +111,52 @@ public class ResponseCreator{
                 }
                                 
                 // client does not have this resource
-                // read from filesystem/cache
-                FileInputStream fis = new FileInputStream(f);
-                resourceSize = (int)f.length();
-                
-                FileChannel fc = fis.getChannel();
-                ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
-                fc.read(responseBodyByteBuffer);
-                responseBodyByteBuffer.flip();
-                respCode = "_200";
+                // read from the cache, if exists
+                ByteBuffer responseBodyByteBuffer = null;
+                try{
+                    LRUResourceCache.getCacheLock().lock();
+                    LRUResourceCache lruCache = Main.getCache();
+                    
+                    if(lruCache.containsKey(eTag)){
+                        byte[] cachedResource = lruCache.get(eTag);
+                        resourceSize = cachedResource.length;
+                        responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
+                        responseBodyByteBuffer.put(cachedResource);
+                        responseBodyByteBuffer.flip();
+                        respCode = "_200";
+                        response.setresponseCacheTag("[Cache]");
+                        
+                    } else {
+                        // client does not have this resource
+                        // nor does cache; read from disk
+                        FileInputStream fis = new FileInputStream(f);
+                        resourceSize = (int)f.length();
 
-                fis.close();
-                fc.close();
-                
+                        FileChannel fc = fis.getChannel();
+                        responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
+                        fc.read(responseBodyByteBuffer);
+                        responseBodyByteBuffer.flip();
+                        respCode = "_200";
+                        fis.close();
+                        fc.close();
+                        
+                        // save the resource in the cache
+                        if(isCacheable(resourceType)){
+                            lruCache.put(eTag, responseBodyByteBuffer.array());
+                        }
+                        response.setresponseCacheTag("[Disk]");
+                    }
+                } finally{
+                    LRUResourceCache.getCacheLock().unlock();
+                }
+                                
+                // if compression is enabled and if the resource
+                // is compressable, do so now
                 if(Main.toCompress() && isCompressable(resourceType)){
                     compress(responseBodyByteBuffer.array());
                 } else {
+                    // either compression is enabler or resource
+                    // is not compressable
                     respContentLength = resourceSize;
                     response.setBody(responseBodyByteBuffer);
                 }
@@ -141,6 +172,7 @@ public class ResponseCreator{
             setErrorResponse(respCode, resource);
             return;
         }
+        
         return;
     }
 
@@ -248,10 +280,10 @@ public class ResponseCreator{
     
     private void compress(byte[] content)throws IOException {
         ByteArrayOutputStream zippedStream = new ByteArrayOutputStream();
-        GZIPOutputStream gzipStream = new GZIPOutputStream(zippedStream);
-        gzipStream.write(content, 0, content.length);
-        gzipStream.flush();
-        gzipStream.close();
+        GZIPOutputStream gzipos = new GZIPOutputStream(zippedStream);
+        gzipos.write(content, 0, content.length);
+        gzipos.flush();
+        gzipos.close();
         
         respContentLength = zippedStream.size();
         ByteBuffer zippedResponseByteBuffer = ByteBuffer.allocate(respContentLength);
