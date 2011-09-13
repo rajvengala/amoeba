@@ -51,17 +51,17 @@ public class ResponseCreator{
             else
                 resourceType = "html";
             
-            String documentRoot = Main.getDocumentRoot();
-            if(Main.isVirtualHost()) 
+            String documentRoot = conf.getDocumentRoot();
+            if(conf.isVirtualHost()) 
                 contextName = request.getHost();
             else
-                contextName = Main.getDefaultContext();
+                contextName = conf.getDefaultContext();
             
             resourcePath.append(documentRoot).append(File.separator).append(contextName).append(resource);
             response.setAbsoluteResource(resourcePath.toString());
 
             // if in maintenance, serve 503 response for all the requests
-            if(Main.inMaintenance()){
+            if(conf.isMaintenance()){
                 respCode = "_503";
                 setErrorResponse(respCode, resource);
             } else {
@@ -74,9 +74,9 @@ public class ResponseCreator{
 
     private void prepareResponseBody(String resource) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
        try {
-            // if the resourcePath absolute path contains "bin" string
-            // pass them to user classes un dyn-req directory
-            if(resourcePath.toString().contains(Main.getClassesFolderName())) {
+            // if the resourcePath absolute path contains "dynbin" string
+            // pass them to user classes in classes directory directory
+            if(resourcePath.toString().contains(conf.getClasses())) {
                 // have a properties file in each webapp folder
                 // and load appropriate class
                 // class loaded should be different for each
@@ -151,7 +151,7 @@ public class ResponseCreator{
                                 
                 // if compression is enabled and if the resource
                 // is compressable, do so now
-                if(Main.toCompress() && isCompressable(resourceType)){
+                if(conf.getCompression() && isCompressable(resourceType)){
                     compress(responseBodyByteBuffer.array());
                 } else {
                     // either compression is enabler or resource
@@ -194,11 +194,11 @@ public class ResponseCreator{
             response.setContentLength(respContentLength + "");
             // if compression is enabled and resource
             // is compressable, do it
-            if(Main.toCompress() && isCompressable(resourceType)){
+            if(conf.getCompression() && isCompressable(resourceType)){
                 response.setContentEncoding("gzip");
             }
         }
-        response.setServer(Main.getServerHeader());
+        response.setServer(conf.getSeverHeader());
         return;
     }
 
@@ -252,9 +252,9 @@ public class ResponseCreator{
 
     private void setErrorResponse(String respCode, String resource) throws FileNotFoundException, IOException{
         
-        File f = new File(Main.getErrorPageFolderPath() + File.separator + resource);
+        File f = new File(conf.getErrorPageFolder() + File.separator + resource);
         if(!f.exists()){
-            f = new File(Main.getErrorPageFolderPath() + File.separator + respCode.split("_")[1] + ".html");
+            f = new File(conf.getErrorPageFolder() + File.separator + respCode.split("_")[1] + ".html");
         }
         
         FileInputStream fis = new FileInputStream(f);
@@ -268,7 +268,7 @@ public class ResponseCreator{
         fis.close();
         fc.close();
                 
-        if(Main.toCompress()){
+        if(conf.getCompression()){
             compress(responseBodyByteBuffer.array());
         } else {
             respContentLength = fileLength;
@@ -302,4 +302,5 @@ public class ResponseCreator{
     private int resourceSize;
     private String eTag;
     private String contextName;
+    private static Configuration conf = Main.getConf();
 }
