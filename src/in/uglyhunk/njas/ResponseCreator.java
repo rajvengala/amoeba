@@ -52,13 +52,12 @@ public class ResponseCreator{
                 resourceType = "html";
             
             String documentRoot = Main.getDocumentRoot();
-            if(Main.isVirtualHost()) {
-                resourcePath.append(documentRoot).append(File.separator)
-                        .append(request.getHost()).append(resource);
-            } else {
-                resourcePath.append(documentRoot).append(File.separator)
-                        .append(Main.getDefaultWebAppFolder()).append(resource);
-            }
+            if(Main.isVirtualHost()) 
+                contextName = request.getHost();
+            else
+                contextName = Main.getDefaultContext();
+            
+            resourcePath.append(documentRoot).append(File.separator).append(contextName).append(resource);
             response.setAbsoluteResource(resourcePath.toString());
 
             // if in maintenance, serve 503 response for all the requests
@@ -115,7 +114,7 @@ public class ResponseCreator{
                 ByteBuffer responseBodyByteBuffer = null;
                 try{
                     LRUResourceCache.getCacheLock().lock();
-                    LRUResourceCache lruCache = Main.getCache();
+                    LRUResourceCache lruCache = Main.getCache(contextName);
                     
                     if(lruCache.containsKey(eTag)){
                         byte[] cachedResource = lruCache.get(eTag);
@@ -302,4 +301,5 @@ public class ResponseCreator{
     private StringBuilder resourcePath;
     private int resourceSize;
     private String eTag;
+    private String contextName;
 }

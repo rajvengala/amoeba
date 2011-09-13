@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 
 package in.uglyhunk.njas;
 
@@ -33,18 +29,33 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 /**
- *
+ * Contains the <b>main</b> method to run the application server
+ * {@link #main(java.lang.String[])} 
  * @author uglyhunk
+ * 
+ * 
  */
 public class Main {
-
+    /**
+     * Kick-starts the execution of the application server. <br/>
+     * It executes the following methods in the specified order <br/>
+     * {@link #loadConfiguration()}
+     * {@link #readConfiguration()}
+     * {@link #setupHandlers()} 
+     * {@link #logConfiguration()}
+     * {@link #setupDataStructures()}
+     * {@link #setupWorkerThreads()} 
+     * 
+     * @param args not used
+     * 
+     */
     public static void main(String[] args) {
         try {
             loadConfiguration();
             readConfiguration();
             setupHandlers();
             logConfiguration();
-            setupQueues();
+            setupDataStructures();
             setupWorkerThreads();
             runDaemon();
         } catch(Exception e) {
@@ -53,6 +64,11 @@ public class Main {
         }
     }
     
+    /**
+     * - Sets the timezone for SimpleDateFormat instance to GMT <br/>
+     * - Reads NJAS_HOME environment variable <br/>
+     * - Loads njas.conf properties file in NJAS_HOME/conf directory <br/>
+     */
     private static void loadConfiguration(){
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         njasHome = System.getenv("NJAS_HOME");
@@ -77,7 +93,10 @@ public class Main {
         }
     }
     
-     private static void readConfiguration() {
+    /**
+     * Read properties from njas.conf file in NJAS_HOME/conf directory.
+     */
+    private static void readConfiguration() {
         // server
         hostname = props.getProperty("hostname");
         port = Integer.parseInt(props.getProperty("port"));
@@ -95,7 +114,7 @@ public class Main {
         
         // request queue
         requestQueueLength = Integer.parseInt(props.getProperty("requestQueueLength"));
-        responseOrderQueueLength = requestQueueLength;
+        responseOrderQueueLength = Integer.parseInt(props.getProperty("responseOrderQueueLength"));
         
         // web root
         documentRoot = props.getProperty("documentRoot");
@@ -113,12 +132,14 @@ public class Main {
         
         // cache
         maxAge = Long.parseLong(props.getProperty("maxAge"));
-        
         initialCacheCapacity = Integer.parseInt(props.getProperty("initialCacheCapacity"));
         cacheLoadFactor = Float.parseFloat(props.getProperty("cacheLoadFactor"));
         cacheSize = Integer.parseInt(props.getProperty("cacheSize"));
     }
 
+    /**
+     * Create console and file handlers
+     */
     private static void setupHandlers() {
         logger.setUseParentHandlers(false);
         logger.setLevel(Level.ALL);
@@ -173,6 +194,9 @@ public class Main {
         logger.addHandler(accessLog);
     }
     
+    /**
+     * Log configuration parameters read from njas.conf to console/file
+     */
     private static void logConfiguration(){
         logger.log(Level.INFO, "Hostname - {0}", hostname);
         logger.log(Level.INFO, "Port - {0}", port);
@@ -183,7 +207,8 @@ public class Main {
         logger.log(Level.INFO, "Max. request processing threads - {0}", maxRequestProcessingThreads);
         logger.log(Level.INFO, "Time to live for non-core request processing threads - {0} seconds", maxRequestProcessingThreads);
 
-        logger.log(Level.INFO, "Queue length of the requests - {0}", requestQueueLength);
+        logger.log(Level.INFO, "Queue length of the request beans - {0}", requestQueueLength);
+        logger.log(Level.INFO, "Queue length of the timestamp of requests - {0}", responseOrderQueueLength);
         logger.log(Level.INFO, "Queue length of the tasks - {0}", tasksQueueLength);
         
         logger.log(Level.INFO, "DocumentRoot - {0}", documentRoot);
@@ -201,15 +226,34 @@ public class Main {
         logger.log(Level.INFO, "Cache : Size - {0}", cacheSize);
     }
    
-    private static void setupQueues(){
+    /**
+     * Sets up the following data structures <br/>
+     * <i>requestQueue</i> - Queue of size <i>requestQueueLength</i> to hold the requests from clients <br/>
+     * <i>responseOrderQueue</i> - Queue of size <i>responseOrderQueue</i> to hold the timestamps of requests 
+     * from the clients in the order their arrival <br/>
+     * <i>responseMap</i> - processed requests from the requestQueue will be stored in this map with timestamp
+     * of the request as key <br/>
+     * 
+     */
+    private static void setupDataStructures(){
         requestQueue = new ArrayBlockingQueue<RequestBean>(requestQueueLength, true);
         responseMap = new ConcurrentHashMap<Long, ResponseBean>();
         responseOrderQueue = new ArrayBlockingQueue<Long>(responseOrderQueueLength, true);
-        lruCache = new LRUResourceCache(cacheSize);
+        cacheMap = new ConcurrentHashMap<String, LRUResourceCache>();
     }
     
+    /**
+     * requestProcessingThreadPool - Each thread in the pool takes the request from the requestQueue and saves the
+     * response in the response map. If the response is cacheable, it saves the response in the lruCache. Thread pool
+     * has the default running threads of <i>coreRequestProcessingThreads</i>, maximum threads of 
+     * <i>maxRequestProcessingThreads</i>
+     * and a timeout for non-core running threads of <i>ttlForNonCoreThreads</i>. This pool has an associated queue of length
+     * <i>tasksQueueLength</i>. This queue will be used to hold the requests from requestQueue temporarily if thread pool
+     * can not allocate any more threads to process the request.
+     * 
+     */
     private static void setupWorkerThreads() {
-        // each http request is prepared as task
+        // each http request from the request queue is prepared as task
         // and submitted to a pool of threads
         tasksQueue = new ArrayBlockingQueue<Runnable>(tasksQueueLength);
 
@@ -221,6 +265,10 @@ public class Main {
                                             tasksQueue);
     }
 
+    /**
+     * 
+     * @throws Exception 
+     */
     private static void runDaemon() throws Exception{
         // create a selector
         selector = SelectorProvider.provider().openSelector();
@@ -264,8 +312,10 @@ public class Main {
         }
     }
 
-    // accept the client connection and make the channel
-    // generate alerts when the data is ready to be read
+    /**
+     * accept the client connection and make the channel generate alerts when the data is ready to be read
+     * @param key selection key
+     */
     private static void acceptConnections(SelectionKey key) {
         ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
         try {
@@ -280,8 +330,10 @@ public class Main {
         
     }
 
-    // read the data from the channel, save it in a buffer
-    // and add it to the request processing queue
+    /**
+     * read the data from the channel, save it in a buffer and add it to the request processing queue
+     * @param key selection key
+     */
     private static void readDataFromChannel(SelectionKey key) {
         ByteBuffer readBuffer = ByteBuffer.allocate(readBufferCapacity);
                
@@ -307,13 +359,11 @@ public class Main {
             reqBean.setSelectionKey(key);
             reqBean.setTimestamp(timestamp);
             
-            // put the request timestamp in the queue
+            // put the request timestamp in the queue.
             // responses will be sent in the order of requests
             // as appeared in this queue
             responseOrderQueue.put(timestamp);
-            
-            //System.out.println(new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss.S").format(new Date(System.currentTimeMillis())) + " - " + new String(readBuffer.array()).split("\r\n")[0]);
-            
+
             // put the request in request queue
             requestQueue.put(reqBean);
             
@@ -471,8 +521,8 @@ public class Main {
         return CLASSES;
     }
     
-    public static String getDefaultWebAppFolder(){
-        return DEFAULT_WEBAPP_FOLDER;
+    public static String getDefaultContext(){
+        return DEFAULT_CONTEXT;
     }
     
     public static String getErrorPageFolderPath(){
@@ -499,7 +549,21 @@ public class Main {
         return cacheLoadFactor;
     }
   
-    public static LRUResourceCache getCache(){
+    /**
+     * Creates/retrieves LRU cache to hold resources (image, javascript, css files etc)<br/>
+     * Each web application has its own cache
+     * 
+     * @param contextName
+     * @return 
+     */
+    public static LRUResourceCache getCache(String contextName){
+        LRUResourceCache lruCache = null;
+        if(cacheMap.containsKey(contextName)){
+            lruCache = cacheMap.get(contextName);
+        } else {
+            lruCache = new LRUResourceCache(cacheSize);
+            cacheMap.put(contextName, lruCache);
+        }
         return lruCache;
     }
     
@@ -549,11 +613,11 @@ public class Main {
     private static int initialCacheCapacity;
     private static float cacheLoadFactor;
     private static int cacheSize;
-    
-    private static LRUResourceCache lruCache;
+   
+    private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
     
     private static final String CLASSES = "bin";
-    private static final String DEFAULT_WEBAPP_FOLDER = "default";
+    private static final String DEFAULT_CONTEXT = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
     private static final String SERVER_HEADER = "Nano Java App Server 0.1";
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
