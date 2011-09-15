@@ -1,5 +1,6 @@
 package in.uglyhunk.njas;
 
+import in.uglyhunk.njas.management.NjasMonitoringAgent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -18,7 +19,6 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -57,6 +57,7 @@ public class Main {
             logConfiguration();
             setupDataStructures();
             setupWorkerThreads();
+            startMonitoringAgent();
             runDaemon();
         } catch (Exception e) {
             logger.log(Level.SEVERE, Utilities.stackTraceToString(e), e);
@@ -108,16 +109,17 @@ public class Main {
         conf.setReadBufferCapacity(Integer.parseInt(props.getProperty("readBufferCapacity")) * 1024);
         
         // request processing threads
-        conf.setCoreRequestProcessingThreads(Integer.parseInt(props.getProperty("coreRequestProcessingThreads")));
+        conf.setMinRequestProcessingThreads(Integer.parseInt(props.getProperty("minRequestProcessingThreads")));
         conf.setMaxRequestProcessingThreads(Integer.parseInt(props.getProperty("maxRequestProcessingThreads")));
         conf.setTtlForNonCoreThreads(Integer.parseInt(props.getProperty("ttlForNonCoreThreads")));
         
         // tasks queue
-        conf.setTasksQueueLength(Integer.parseInt(props.getProperty("tasksQueueLength")));
+        conf.setThreadPoolQueueLength(Integer.parseInt(props.getProperty("threadPoolQueueLength")));
         
         // request queue
         conf.setRequestQueueLength(Integer.parseInt(props.getProperty("requestQueueLength")));
-        conf.setResponseOrderQueueLength(Integer.parseInt(props.getProperty("responseOrderQueueLength")));
+        // queue length of request timestamps is same as that of for raw requests
+        conf.setRequestsTimestampQueueLength(Integer.parseInt(props.getProperty("requestQueueLength")));
         
         // web root
         conf.setDocumentRoot(props.getProperty("documentRoot"));
@@ -135,9 +137,9 @@ public class Main {
         
         // cache
         conf.setMaxAge(Long.parseLong(props.getProperty("maxAge")));
-        conf.setInitialCacheCapacity(Integer.parseInt(props.getProperty("initialCacheCapacity")));
+        conf.setInitialCacheSize(Integer.parseInt(props.getProperty("initialCacheSize")));
         conf.setCacheLoadFactor(Float.parseFloat(props.getProperty("cacheLoadFactor")));
-        conf.setCacheSize(Integer.parseInt(props.getProperty("cacheSize")));
+        conf.setCacheCapacity(Integer.parseInt(props.getProperty("cacheCapacity")));
     }
 
     /**
@@ -209,13 +211,12 @@ public class Main {
 
         logger.log(Level.INFO, "Request buffer capacity - {0} KB", conf.getReadBufferCapacity() / 1024);
 
-        logger.log(Level.INFO, "Core request processing threads - {0}", conf.getCoreRequestProcessingThreads());
-        logger.log(Level.INFO, "Max. request processing threads - {0}", conf.getMaxRequestProcessingThreads());
+        logger.log(Level.INFO, "Min. request processing threads in the thread pool - {0}", conf.getMinRequestProcessingThreads());
+        logger.log(Level.INFO, "Max. request processing threads in the thread pool - {0}", conf.getMaxRequestProcessingThreads());
         logger.log(Level.INFO, "Time to live for non-core request processing threads - {0} seconds", conf.getTtlForNonCoreThreads());
 
         logger.log(Level.INFO, "Queue length of the request beans - {0}", conf.getRequestQueueLength());
-        logger.log(Level.INFO, "Queue length of the timestamp of requests - {0}", conf.getResponseOrderQueueLength());
-        logger.log(Level.INFO, "Queue length of the tasks - {0}", conf.getTasksQueueLength());
+        logger.log(Level.INFO, "Queue length of the request processing thread pool - {0}", conf.getThreadPoolQueueLength());
 
         logger.log(Level.INFO, "DocumentRoot - {0}", conf.getDocumentRoot());
         logger.log(Level.INFO, "VirtualHost - {0}", conf.isVirtualHost());
@@ -227,15 +228,15 @@ public class Main {
         logger.log(Level.INFO, "In maintenance - {0}", conf.isMaintenance());
         logger.log(Level.INFO, "Max Age - {0} seconds for cacheable resources", conf.getMaxAge());
 
-        logger.log(Level.INFO, "Cache : Initial capacity - {0}", conf.getInitialCacheCapacity());
+        logger.log(Level.INFO, "Cache : Initial size - {0}", conf.getInitialCacheSize());
         logger.log(Level.INFO, "Cache : Load factor - {0}", conf.getCacheLoadFactor());
-        logger.log(Level.INFO, "Cache : Size - {0}", conf.getCacheSize());
+        logger.log(Level.INFO, "Cache : Capacity - {0}", conf.getCacheCapacity());
     }
 
     /**
      * Sets up the following data structures <br/>
      * <i>requestQueue</i> - Queue of size <i>requestQueueLength</i> to hold the requests from clients <br/>
-     * <i>responseOrderQueue</i> - Queue of size <i>responseOrderQueue</i> to hold the timestamps of requests 
+     * <i>requestsTimestampQueue</i> - Queue of size <i>requestsTimestampQueue</i> to hold the timestamps of requests 
      * from the clients in the order their arrival <br/>
      * <i>responseMap</i> - processed requests from the requestQueue will be stored in this map with timestamp
      * of the request as key <br/>
@@ -244,7 +245,7 @@ public class Main {
     private static void setupDataStructures() {
         requestQueue = new ArrayBlockingQueue<RequestBean>(conf.getRequestQueueLength(), true);
         responseMap = new ConcurrentHashMap<Long, ResponseBean>();
-        responseOrderQueue = new ArrayBlockingQueue<Long>(conf.getResponseOrderQueueLength(), true);
+        requestsTimestampQueue = new ArrayBlockingQueue<Long>(conf.getRequestsTimestampQueueLength(), true);
         cacheMap = new ConcurrentHashMap<String, LRUResourceCache>();
     }
 
@@ -261,14 +262,14 @@ public class Main {
     private static void setupWorkerThreads() {
         // each http request from the request queue is prepared as task
         // and submitted to a pool of threads
-        tasksQueue = new ArrayBlockingQueue<Runnable>(conf.getTasksQueueLength());
+        threadPoolQueue = new ArrayBlockingQueue<Runnable>(conf.getThreadPoolQueueLength());
 
         requestProcessingThreadPool = new CustomThreadPoolExecutor(
-                conf.getCoreRequestProcessingThreads(),
-                conf.getMaxRequestProcessingThreads(),
-                conf.getTtlForNonCoreThreads(),
-                TimeUnit.SECONDS,
-                tasksQueue);
+                                        conf.getMinRequestProcessingThreads(),
+                                        conf.getMaxRequestProcessingThreads(),
+                                        conf.getTtlForNonCoreThreads(),
+                                        TimeUnit.SECONDS,
+                                        threadPoolQueue);
     }
 
     /**
@@ -316,6 +317,10 @@ public class Main {
                 }
             }
         }
+    }
+    
+    private static void startMonitoringAgent(){
+        new NjasMonitoringAgent();
     }
 
     /**
@@ -367,7 +372,7 @@ public class Main {
             // put the request timestamp in the queue.
             // responses will be sent in the order of requests
             // as appeared in this queue
-            responseOrderQueue.put(timestamp);
+            requestsTimestampQueue.put(timestamp);
 
             // put the request in request queue
             requestQueue.put(reqBean);
@@ -396,13 +401,13 @@ public class Main {
     public static void writeToChannel(SelectionKey key) {
         SocketChannel socketChannel = null;
         try {
-            Long timestamp = responseOrderQueue.peek();
+            Long timestamp = requestsTimestampQueue.peek();
             if (timestamp != null && responseMap.containsKey(timestamp)) {
                 ResponseBean respBean = responseMap.get(timestamp);
 
-                // remove the request timestamp from responseOrderQueue
+                // remove the request timestamp from requestsTimestampQueue
                 // remove the response bean object from responseMap
-                responseMap.remove(responseOrderQueue.poll());
+                responseMap.remove(requestsTimestampQueue.poll());
 
                 String statusLine = respBean.getStatusLine();
                 String contentType = respBean.getContentType();
@@ -502,15 +507,27 @@ public class Main {
     public static Logger getLogger() {
         return logger;
     }
+    
+    public static CustomThreadPoolExecutor getRequestProcessingThreadPool(){
+        return requestProcessingThreadPool;
+    }
 
     public static ArrayBlockingQueue<RequestBean> getRequestQueue() {
         return requestQueue;
     }
-
+    
+    public static ArrayBlockingQueue<Runnable> getThreadPoolQueue() {
+        return threadPoolQueue;
+    }
+    
     public static ConcurrentHashMap<Long, ResponseBean> getResponseMap() {
         return responseMap;
     }
-
+    
+    public static ConcurrentHashMap<String, LRUResourceCache> getCacheMap(){
+        return cacheMap;
+    }
+   
     public static SimpleDateFormat getDateFormat() {
         return sdf;
     }
@@ -525,9 +542,9 @@ public class Main {
     public static LRUResourceCache getCache(String contextName) {
         LRUResourceCache lruCache = null;
         if (cacheMap.containsKey(contextName)) {
-            lruCache = cacheMap.get(contextName);
+            lruCache = (LRUResourceCache) cacheMap.get(contextName);
         } else {
-            lruCache = new LRUResourceCache(conf.getCacheSize());
+            lruCache = new LRUResourceCache(conf.getCacheCapacity());
             cacheMap.put(contextName, lruCache);
         }
         return lruCache;
@@ -545,13 +562,12 @@ public class Main {
     private static Selector selector;
     private static ServerSocketChannel serverSocketChannel;
     private static File logDir;
-    
     private static Configuration conf;
-    private static ExecutorService requestProcessingThreadPool;
-    private static ArrayBlockingQueue<Runnable> tasksQueue;
+    private static CustomThreadPoolExecutor requestProcessingThreadPool;
+    private static ArrayBlockingQueue<Runnable> threadPoolQueue;
     private static ArrayBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<Long, ResponseBean> responseMap;
-    private static ArrayBlockingQueue<Long> responseOrderQueue;
+    private static ArrayBlockingQueue<Long> requestsTimestampQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
 }

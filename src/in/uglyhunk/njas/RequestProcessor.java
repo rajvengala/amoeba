@@ -57,7 +57,6 @@ public class RequestProcessor implements Runnable {
     }
 
     private void parseRequest(RequestBean reqBean, String rawRequest) throws ParseException {
-        
         reqBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getHTTPEOL());
         

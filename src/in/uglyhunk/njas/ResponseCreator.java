@@ -111,10 +111,11 @@ public class ResponseCreator{
                                 
                 // client does not have this resource
                 // read from the cache, if exists
+                LRUResourceCache lruCache = null;
                 ByteBuffer responseBodyByteBuffer = null;
                 try{
-                    LRUResourceCache.getCacheLock().lock();
-                    LRUResourceCache lruCache = Main.getCache(contextName);
+                    lruCache = Main.getCache(contextName);
+                    lruCache.getCacheLock().lock();
                     
                     if(lruCache.containsKey(eTag)){
                         byte[] cachedResource = lruCache.get(eTag);
@@ -146,7 +147,7 @@ public class ResponseCreator{
                         response.setresponseCacheTag("[Disk]");
                     }
                 } finally{
-                    LRUResourceCache.getCacheLock().unlock();
+                    lruCache.getCacheLock().unlock();
                 }
                                 
                 // if compression is enabled and if the resource

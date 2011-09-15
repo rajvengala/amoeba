@@ -10,6 +10,7 @@ package in.uglyhunk.njas;
  */
 public enum ResponseContentTypeEnum {
 
+    //filextension("mimetype,binary,compess,cache)
     HTML("text/html", false, true, false),
     TXT("text/plain", false, true, false),
     XML("application/atom+xml", false, true, false),
@@ -22,7 +23,8 @@ public enum ResponseContentTypeEnum {
     BMP("image/bmp", true, false, true),
     GIF("image/gif", true, false, true),
     ZIP("application/zip", true, false, false),
-    GZ("application/x-gzip", true, false, false);
+    GZ("application/x-gzip", true, false, false),
+    SWF("application/x-shockwave-flash", true, false, true);
 
     ResponseContentTypeEnum(String contentType, boolean isBinary, boolean isCompressable, boolean isCacheable) {
         this.contentType = contentType;

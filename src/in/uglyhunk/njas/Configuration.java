@@ -69,31 +69,31 @@ public class Configuration {
     }
 
     /**
-     * @return the tasksQueueLength
+     * @return the threadPoolQueueLength
      */
-    public int getTasksQueueLength() {
-        return tasksQueueLength;
+    public int getThreadPoolQueueLength() {
+        return threadPoolQueueLength;
     }
 
     /**
-     * @param aTasksQueueLength the tasksQueueLength to set
+     * @param aTasksQueueLength the threadPoolQueueLength to set
      */
-    public void setTasksQueueLength(int aTasksQueueLength) {
-        tasksQueueLength = aTasksQueueLength;
+    public void setThreadPoolQueueLength(int threadPoolQueueLength) {
+        this.threadPoolQueueLength = threadPoolQueueLength;
     }
 
     /**
-     * @return the coreRequestProcessingThreads
+     * @return the minRequestProcessingThreads
      */
-    public int getCoreRequestProcessingThreads() {
-        return coreRequestProcessingThreads;
+    public int getMinRequestProcessingThreads() {
+        return minRequestProcessingThreads;
     }
 
     /**
-     * @param aCoreRequestProcessingThreads the coreRequestProcessingThreads to set
+     * @param aCoreRequestProcessingThreads the minRequestProcessingThreads to set
      */
-    public void setCoreRequestProcessingThreads(int aCoreRequestProcessingThreads) {
-        coreRequestProcessingThreads = aCoreRequestProcessingThreads;
+    public void setMinRequestProcessingThreads(int minRequestProcessingThreads) {
+        this.minRequestProcessingThreads = minRequestProcessingThreads;
     }
 
     /**
@@ -106,8 +106,8 @@ public class Configuration {
     /**
      * @param aMaxRequestProcessingThreads the maxRequestProcessingThreads to set
      */
-    public void setMaxRequestProcessingThreads(int aMaxRequestProcessingThreads) {
-        maxRequestProcessingThreads = aMaxRequestProcessingThreads;
+    public void setMaxRequestProcessingThreads(int maxRequestProcessingThreads) {
+        this.maxRequestProcessingThreads = maxRequestProcessingThreads;
     }
 
     /**
@@ -127,15 +127,15 @@ public class Configuration {
     /**
      * @return the responseOrderQueueLength
      */
-    public int getResponseOrderQueueLength() {
-        return responseOrderQueueLength;
+    public int getRequestsTimestampQueueLength() {
+        return requestsTimestampQueueLength;
     }
 
     /**
      * @param aResponseOrderQueueLength the responseOrderQueueLength to set
      */
-    public void setResponseOrderQueueLength(int aResponseOrderQueueLength) {
-        responseOrderQueueLength = aResponseOrderQueueLength;
+    public void setRequestsTimestampQueueLength(int requestsTimestampQueueLength) {
+        this.requestsTimestampQueueLength = requestsTimestampQueueLength;
     }
 
     /**
@@ -253,15 +253,15 @@ public class Configuration {
     /**
      * @return the initialCacheCapacity
      */
-    public int getInitialCacheCapacity() {
-        return initialCacheCapacity;
+    public int getInitialCacheSize() {
+        return initialCacheSize;
     }
 
     /**
      * @param aInitialCacheCapacity the initialCacheCapacity to set
      */
-    public void setInitialCacheCapacity(int aInitialCacheCapacity) {
-        initialCacheCapacity = aInitialCacheCapacity;
+    public void setInitialCacheSize(int initialCacheSize) {
+        this.initialCacheSize = initialCacheSize;
     }
 
     /**
@@ -281,15 +281,15 @@ public class Configuration {
     /**
      * @return the cacheSize
      */
-    public int getCacheSize() {
-        return cacheSize;
+    public int getCacheCapacity() {
+        return cacheCapacity;
     }
 
     /**
      * @param aCacheSize the cacheSize to set
      */
-    public void setCacheSize(int aCacheSize) {
-        cacheSize = aCacheSize;
+    public void setCacheCapacity(int capacity) {
+        cacheCapacity = capacity;
     }
 
     /**
@@ -323,11 +323,11 @@ public class Configuration {
     private int readBufferCapacity; // in bytes
     private String hostname;
     private int port;
-    private int tasksQueueLength;
-    private int coreRequestProcessingThreads;
+    private int threadPoolQueueLength;
+    private int minRequestProcessingThreads;
     private int maxRequestProcessingThreads;
     private int requestQueueLength;
-    private int responseOrderQueueLength;
+    private int requestsTimestampQueueLength;
     private long ttlForNonCoreThreads;
     private int ERRLOGFILSIZE; // KB
     private int ERRLOGFILECOUNT;// max log file count
@@ -336,9 +336,9 @@ public class Configuration {
     private boolean compression;
     private boolean maintenance;
     private long maxAge;
-    private int initialCacheCapacity;
+    private int initialCacheSize;
     private float cacheLoadFactor;
-    private int cacheSize;
+    private int cacheCapacity;
     private String njasHome; // environment variable
     private static final String CLASSES = "bin";
     private static final String DEFAULT_CONTEXT = "default";

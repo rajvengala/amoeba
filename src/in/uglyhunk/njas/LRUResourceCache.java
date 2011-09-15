@@ -15,21 +15,21 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class LRUResourceCache extends LinkedHashMap<String, byte[]> {
     
-    public LRUResourceCache(int cacheSize){
-        super(conf.getInitialCacheCapacity(), conf.getCacheLoadFactor(), true);
-        this.cacheSize = cacheSize;
+    public LRUResourceCache(int cacheCapacity){
+        super(conf.getInitialCacheSize(), conf.getCacheLoadFactor(), true);
+        this.cacheCapacity = cacheCapacity;
     }
 
     @Override
     protected boolean removeEldestEntry(Entry<String, byte[]> eldest) {
-        return super.size() > cacheSize;
+        return super.size() > cacheCapacity;
     }
     
-    public static Lock getCacheLock(){
+    public Lock getCacheLock(){
         return cacheLock;
     }
-    
-    private int cacheSize;
+        
+    private int cacheCapacity;
+    private Lock cacheLock = new ReentrantLock();
     private static Configuration conf = Main.getConf();
-    private static Lock cacheLock = new ReentrantLock();
 }
