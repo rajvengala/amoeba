@@ -117,9 +117,10 @@ public class Main {
         conf.setThreadPoolQueueLength(Integer.parseInt(props.getProperty("threadPoolQueueLength")));
         
         // request queue
-        conf.setRequestQueueLength(Integer.parseInt(props.getProperty("requestQueueLength")));
+        int reqQueueLength = Integer.parseInt(props.getProperty("requestQueueLength"));
+        conf.setRequestQueueLength(reqQueueLength);
         // queue length of request timestamps is same as that of for raw requests
-        conf.setRequestsTimestampQueueLength(Integer.parseInt(props.getProperty("requestQueueLength")));
+        conf.setRequestsTimestampQueueLength(reqQueueLength);
         
         // web root
         conf.setDocumentRoot(props.getProperty("documentRoot"));
