@@ -369,6 +369,8 @@ public class Main {
             reqBean.setRawRequestBytes(readBuffer.array());
             reqBean.setSelectionKey(key);
             reqBean.setTimestamp(timestamp);
+            
+            //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
 
             // put the request timestamp in the queue.
             // responses will be sent in the order of requests
@@ -382,7 +384,10 @@ public class Main {
             // a request processing thread pool
             RequestProcessor requestProcessor = new RequestProcessor();
             requestProcessingThreadPool.execute(requestProcessor);
-            Thread.sleep(40);
+            
+            // ugly work around to read the requests from the browser
+            // in the correct order
+            Thread.sleep(20); 
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
@@ -556,7 +561,6 @@ public class Main {
     }
     
     private static Properties props;
-    private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
     private static ConsoleHandler console;
     private static FileHandler logFile;
     private static FileHandler accessLog;
@@ -571,4 +575,5 @@ public class Main {
     private static ArrayBlockingQueue<Long> requestsTimestampQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
+    private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
 }

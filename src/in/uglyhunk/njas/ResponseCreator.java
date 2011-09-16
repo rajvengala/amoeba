@@ -118,6 +118,8 @@ public class ResponseCreator{
                     lruCache.getCacheLock().lock();
                     
                     if(lruCache.containsKey(eTag)){
+                        // resource is found in the cache
+                        // read from the cache
                         byte[] cachedResource = lruCache.get(eTag);
                         resourceSize = cachedResource.length;
                         responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
@@ -125,7 +127,7 @@ public class ResponseCreator{
                         responseBodyByteBuffer.flip();
                         respCode = "_200";
                         response.setresponseCacheTag("[Cache]");
-                        
+                        resourcesReadFromCache++;
                     } else {
                         // client does not have this resource
                         // nor does cache; read from disk
@@ -145,6 +147,7 @@ public class ResponseCreator{
                             lruCache.put(eTag, responseBodyByteBuffer.array());
                         }
                         response.setresponseCacheTag("[Disk]");
+                        resourcesReadFromDisk++;
                     }
                 } finally{
                     lruCache.getCacheLock().unlock();
@@ -293,6 +296,14 @@ public class ResponseCreator{
         response.setBody(zippedResponseByteBuffer);
     }
      
+    public static long getResourcesReadFromDisk(){
+        return resourcesReadFromDisk;
+    }
+    
+    public static long getResourcesReadFromCache(){
+        return resourcesReadFromCache;
+    }
+    
     private String respCode;
     private int respContentLength;
     private RequestBean request;
@@ -304,4 +315,8 @@ public class ResponseCreator{
     private String eTag;
     private String contextName;
     private static Configuration conf = Main.getConf();
+    
+    // multiple threads change the following volatile variables
+    private static volatile long resourcesReadFromDisk;
+    private static volatile long resourcesReadFromCache;
 }

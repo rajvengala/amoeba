@@ -16,4 +16,7 @@ public interface NjasMonitorMBean {
     public int getRequestProcessingThreadPoolQueueLength();
     public int getRequestQueueLength();
     public String getCacheInfo();
+    public long getResourcesReadFromCache();
+    public long getResourcesReadFromDisk();
 }
+

@@ -8,6 +8,7 @@ import in.uglyhunk.njas.CustomThreadPoolExecutor;
 import in.uglyhunk.njas.LRUResourceCache;
 import in.uglyhunk.njas.Main;
 import in.uglyhunk.njas.RequestBean;
+import in.uglyhunk.njas.ResponseCreator;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,9 +59,18 @@ public class NjasMonitor implements NjasMonitorMBean{
         }
         return cacheInfo.toString();
     }
+   
+    public long getResourcesReadFromCache() {
+        return ResponseCreator.getResourcesReadFromCache();
+    }
+
+    public long getResourcesReadFromDisk() {
+        return ResponseCreator.getResourcesReadFromDisk();
+    }
     
     private static CustomThreadPoolExecutor requestProcessingThreadPool;
     private static ArrayBlockingQueue<Runnable> threadPoolQueue;
     private static ArrayBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
 }
+
