@@ -2,10 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package in.uglyhunk.njas.management;
+package in.uglyhunk.amoeba.management;
 
-import in.uglyhunk.njas.Main;
-import in.uglyhunk.njas.Utilities;
+import in.uglyhunk.amoeba.server.Main;
+import in.uglyhunk.amoeba.server.Utilities;
 import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
 import javax.management.MBeanServer;
@@ -15,15 +15,15 @@ import javax.management.ObjectName;
  *
  * @author rvengala
  */
-public class NjasMonitoringAgent {
+public class AmoebaMonitoringAgent {
 
-    public NjasMonitoringAgent() {
+    public AmoebaMonitoringAgent() {
 
         // Get the platform MBeanServer
         mbs = ManagementFactory.getPlatformMBeanServer();
 
         // Unique identification of MBeans
-        NjasMonitorMBean njasMbean = new NjasMonitor();
+        AmoebaMonitorMBean njasMbean = new AmoebaMonitor();
         ObjectName njasObjectName = null;
 
         try {

@@ -2,13 +2,13 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package in.uglyhunk.njas.management;
+package in.uglyhunk.amoeba.management;
 
 /**
  *
  * @author rvengala
  */
-public interface NjasMonitorMBean {
+public interface AmoebaMonitorMBean {
     public int getRequestProcessingThreadPoolSize();
     public int getRequestProcessingThreadPoolActiveCount();
     public long getRequestProcessingThreadPoolCompletedTaskCount();

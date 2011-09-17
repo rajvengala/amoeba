@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package in.uglyhunk.njas;
+package in.uglyhunk.amoeba.server;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;

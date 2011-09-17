@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package in.uglyhunk.njas;
+package in.uglyhunk.amoeba.server;
 
 import java.util.logging.Filter;
 import java.util.logging.Level;

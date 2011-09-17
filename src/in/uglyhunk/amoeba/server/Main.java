@@ -1,6 +1,6 @@
-package in.uglyhunk.njas;
+package in.uglyhunk.amoeba.server;
 
-import in.uglyhunk.njas.management.NjasMonitoringAgent;
+import in.uglyhunk.amoeba.management.AmoebaMonitoringAgent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -300,7 +300,7 @@ public class Main {
         while (true) {
             // wait for an event on one of the registered channels
             selector.select();
-
+            
             // iterate over the keys and respond to the events
             Iterator selectedKeys = selector.selectedKeys().iterator();
             while (selectedKeys.hasNext()) {
@@ -317,11 +317,15 @@ public class Main {
                     }
                 }
             }
+            
+            // ugly work around to read the requests 
+            // from the browser in the correct order
+            Thread.sleep(EVENT_LOOP_DELAY); 
         }
     }
     
     private static void startMonitoringAgent(){
-        new NjasMonitoringAgent();
+        new AmoebaMonitoringAgent();
     }
 
     /**
@@ -370,7 +374,7 @@ public class Main {
             reqBean.setSelectionKey(key);
             reqBean.setTimestamp(timestamp);
             
-            //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
+            System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
 
             // put the request timestamp in the queue.
             // responses will be sent in the order of requests
@@ -385,9 +389,6 @@ public class Main {
             RequestProcessor requestProcessor = new RequestProcessor();
             requestProcessingThreadPool.execute(requestProcessor);
             
-            // ugly work around to read the requests from the browser
-            // in the correct order
-            Thread.sleep(20); 
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
@@ -576,4 +577,5 @@ public class Main {
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
+    private static final long EVENT_LOOP_DELAY = 30; // milli seconds
 }

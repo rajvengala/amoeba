@@ -7,29 +7,29 @@
 <!-- the Compile on Save feature is turned off for the project. -->
 <!-- You can turn off the Compile on Save (or Deploy on Save) setting -->
 <!-- in the project's Project Properties dialog box.-->
-<project name="njas" default="default" basedir=".">
-    <description>Builds, tests, and runs the project njas.</description>
+<project name="amoeba" default="default" basedir=".">
+    <description>Builds, tests, and runs the project amoeba</description>
     <import file="nbproject/build-impl.xml"/>
 
     <target name="-post-jar">
 
 
-        <mkdir dir="${dist.dir}/njas" />
-        <mkdir dir="${dist.dir}/njas/bin" />
-        <mkdir dir="${dist.dir}/njas/lib" />
-        <mkdir dir="${dist.dir}/njas/conf" />
-        <mkdir dir="${dist.dir}/njas/error" />
+        <mkdir dir="${dist.dir}/amoeba" />
+        <mkdir dir="${dist.dir}/amoeba/bin" />
+        <mkdir dir="${dist.dir}/amoeba/lib" />
+        <mkdir dir="${dist.dir}/amoeba/conf" />
+        <mkdir dir="${dist.dir}/amoeba/error" />
         
-        <move file="${dist.dir}/njas.jar" todir="${dist.dir}/njas/lib" />
-        <copy todir="${dist.dir}/njas/bin">
+        <move file="${dist.dir}/amoeba.jar" todir="${dist.dir}/amoeba/lib" />
+        <copy todir="${dist.dir}/amoeba/bin">
             <fileset dir="scripts"/>
         </copy>
 
-        <copy todir="${dist.dir}/njas/conf">
+        <copy todir="${dist.dir}/amoeba/conf">
             <fileset dir="conf"/>
         </copy>
 
-        <copy todir="${dist.dir}/njas/error">
+        <copy todir="${dist.dir}/amoeba/error">
             <fileset dir="error"/>
         </copy>
     </target>

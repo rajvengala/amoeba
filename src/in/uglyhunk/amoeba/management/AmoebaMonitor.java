@@ -2,13 +2,13 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package in.uglyhunk.njas.management;
+package in.uglyhunk.amoeba.management;
 
-import in.uglyhunk.njas.CustomThreadPoolExecutor;
-import in.uglyhunk.njas.LRUResourceCache;
-import in.uglyhunk.njas.Main;
-import in.uglyhunk.njas.RequestBean;
-import in.uglyhunk.njas.ResponseCreator;
+import in.uglyhunk.amoeba.server.CustomThreadPoolExecutor;
+import in.uglyhunk.amoeba.server.LRUResourceCache;
+import in.uglyhunk.amoeba.server.Main;
+import in.uglyhunk.amoeba.server.RequestBean;
+import in.uglyhunk.amoeba.server.ResponseCreator;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author rvengala
  */
-public class NjasMonitor implements NjasMonitorMBean{
+public class AmoebaMonitor implements AmoebaMonitorMBean{
     
-    public NjasMonitor(){
+    public AmoebaMonitor(){
         requestProcessingThreadPool = Main.getRequestProcessingThreadPool();
         threadPoolQueue = Main.getThreadPoolQueue();
         requestQueue = Main.getRequestQueue();
