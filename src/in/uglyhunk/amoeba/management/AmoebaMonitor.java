@@ -68,9 +68,14 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
         return ResponseCreator.getResourcesReadFromDisk();
     }
     
+    public int getOpenSocketsCount() {
+        return Main.getOpenSocketCount();
+    }
+    
     private static CustomThreadPoolExecutor requestProcessingThreadPool;
     private static ArrayBlockingQueue<Runnable> threadPoolQueue;
     private static ArrayBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
+
 }
 

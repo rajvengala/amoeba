@@ -338,7 +338,7 @@ public class Main {
             SocketChannel socketChannel = serverChannel.accept();
             socketChannel.configureBlocking(false);
             socketChannel.register(selector, SelectionKey.OP_READ);
-
+            openSocketsCount++;
         } catch (IOException ioe) {
             logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         }
@@ -396,6 +396,7 @@ public class Main {
             key.cancel();
             try {
                 socketChannel.close();
+                openSocketsCount--;
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
             }
@@ -504,6 +505,7 @@ public class Main {
             key.cancel();
             try {
                 socketChannel.close();
+                openSocketsCount--;
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
             }
@@ -561,6 +563,10 @@ public class Main {
         return conf;
     }
     
+    public static int getOpenSocketCount(){
+        return openSocketsCount;
+    }
+    
     private static Properties props;
     private static ConsoleHandler console;
     private static FileHandler logFile;
@@ -575,6 +581,7 @@ public class Main {
     private static ConcurrentHashMap<Long, ResponseBean> responseMap;
     private static ArrayBlockingQueue<Long> requestsTimestampQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
+    private static int openSocketsCount;
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
     private static final long EVENT_LOOP_DELAY = 30; // milli seconds

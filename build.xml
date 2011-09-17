@@ -10,20 +10,32 @@
 <project name="amoeba" default="default" basedir=".">
     <description>Builds, tests, and runs the project amoeba</description>
     <import file="nbproject/build-impl.xml"/>
-
+    
+    <target name="-pre-jar">
+        <propertyfile file="${src.dir}/version.txt">
+            <entry key="VERSION" default="0.1.0" />
+            <entry key="BUILD-NUM" value="1" type="int" operation="+"/>
+            <entry key="BUILD-DATE" type="date" value="now" pattern="dd/MMM/yyyy HH:mm:ss" />
+        </propertyfile> 
+    </target>
+    
     <target name="-post-jar">
-
-
+        <delete file="${dist.dir}/README.TXT"/>
+        
         <mkdir dir="${dist.dir}/amoeba" />
         <mkdir dir="${dist.dir}/amoeba/bin" />
         <mkdir dir="${dist.dir}/amoeba/lib" />
         <mkdir dir="${dist.dir}/amoeba/conf" />
         <mkdir dir="${dist.dir}/amoeba/error" />
         
-        <move file="${dist.dir}/amoeba.jar" todir="${dist.dir}/amoeba/lib" />
+        <copy file="${src.dir}/version.txt" todir="${dist.dir}/amoeba" />
+        <copy file="readme.txt" todir="${dist.dir}/amoeba" />
+        
         <copy todir="${dist.dir}/amoeba/bin">
             <fileset dir="scripts"/>
         </copy>
+        
+        <move file="${dist.dir}/amoeba.jar" todir="${dist.dir}/amoeba/lib" />
 
         <copy todir="${dist.dir}/amoeba/conf">
             <fileset dir="conf"/>

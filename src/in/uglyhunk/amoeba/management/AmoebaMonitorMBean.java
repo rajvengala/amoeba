@@ -18,5 +18,6 @@ public interface AmoebaMonitorMBean {
     public String getCacheInfo();
     public long getResourcesReadFromCache();
     public long getResourcesReadFromDisk();
+    public int getOpenSocketsCount();
 }
 
