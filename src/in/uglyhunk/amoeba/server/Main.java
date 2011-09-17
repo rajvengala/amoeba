@@ -67,23 +67,23 @@ public class Main {
 
     /**
      * - Sets the timezone for SimpleDateFormat instance to GMT <br/>
-     * - Reads NJAS_HOME environment variable <br/>
-     * - Loads njas.conf properties file in NJAS_HOME/conf directory <br/>
+     * - Reads AMOEBA_HOME environment variable <br/>
+     * - Loads amoeba.conf properties file in AMOEBA_HOME/conf directory <br/>
      */
     private static void loadConfiguration() {
         // initialize configuration
         conf = new Configuration();
         
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String njasHome = System.getenv("NJAS_HOME");
+        String njasHome = System.getenv("AMOEBA_HOME");
         conf.setNjasHome(njasHome);
         if (njasHome == null) {
-            System.out.println("NJAS_HOME environemnt variable is not set");
+            System.out.println("AMOEBA_HOME environemnt variable is not set");
             System.exit(1);
         }
 
         props = new Properties();
-        String propFilePath = njasHome + File.separator + "conf" + File.separator + "njas.conf";
+        String propFilePath = njasHome + File.separator + "conf" + File.separator + CONF_FILE;
         try {
             FileReader reader = new FileReader(propFilePath);
             props.load(reader);
@@ -374,7 +374,7 @@ public class Main {
             reqBean.setSelectionKey(key);
             reqBean.setTimestamp(timestamp);
             
-            System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
+            //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
 
             // put the request timestamp in the queue.
             // responses will be sent in the order of requests
@@ -583,6 +583,7 @@ public class Main {
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
     private static int openSocketsCount;
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
-    private static final Logger logger = Logger.getLogger("in.uglyhunk.njws");
+    private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
+    private static final String CONF_FILE = "amoeba.conf";
     private static final long EVENT_LOOP_DELAY = 30; // milli seconds
 }

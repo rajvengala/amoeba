@@ -10,8 +10,7 @@
 <project name="amoeba" default="default" basedir=".">
     <description>Builds, tests, and runs the project amoeba</description>
     <import file="nbproject/build-impl.xml"/>
-
-    <import file="nbproject/management-build-impl.xml"/>    
+    
     <target name="-pre-jar">
         <propertyfile file="${src.dir}/version.txt">
             <entry key="VERSION" default="0.1.0" />
@@ -108,4 +107,3 @@
 
     -->
 </project>
-
