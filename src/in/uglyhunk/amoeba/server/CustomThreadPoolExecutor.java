@@ -33,7 +33,7 @@ public class CustomThreadPoolExecutor extends ThreadPoolExecutor{
     public void afterExecute(Runnable r, Throwable t){
        super.afterExecute(r, t);
        if(t != null){
-           Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(t), t);
+           Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(t), t);
        }
     }
 }

@@ -4,7 +4,7 @@
  */
 package in.uglyhunk.amoeba.management;
 
-import in.uglyhunk.amoeba.server.Main;
+import in.uglyhunk.amoeba.server.Configuration;
 import in.uglyhunk.amoeba.server.Utilities;
 import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
@@ -31,7 +31,7 @@ public class AmoebaMonitoringAgent {
              njasObjectName = new ObjectName("in.uglyhunk.njas.management:name=njas");
              mbs.registerMBean(njasMbean, njasObjectName);
         } catch(Exception e) {
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
         }
     }
  

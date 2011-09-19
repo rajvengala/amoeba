@@ -55,7 +55,7 @@ public class ResponseCreator{
             if(conf.isVirtualHost()) 
                 contextName = request.getHost();
             else
-                contextName = conf.getDefaultContext();
+                contextName = Configuration.getDefaultContext();
             
             resourcePath.append(documentRoot).append(File.separator).append(contextName).append(resource);
             response.setAbsoluteResource(resourcePath.toString());
@@ -76,7 +76,7 @@ public class ResponseCreator{
        try {
             // if the resourcePath absolute path contains "dynbin" string
             // pass them to user classes in classes directory directory
-            if(resourcePath.toString().contains(conf.getClasses())) {
+            if(resourcePath.toString().contains(Configuration.getClasses())) {
                 // have a properties file in each webapp folder
                 // and load appropriate class
                 // class loaded should be different for each
@@ -165,12 +165,12 @@ public class ResponseCreator{
                 }
            }
         } catch (FileNotFoundException fnfe) {
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             respCode = "_404";
             setErrorResponse(respCode, resource);
             return;
         } catch (IOException ioe) {
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
             respCode = "_500";
             setErrorResponse(respCode, resource);
             return;
@@ -202,7 +202,7 @@ public class ResponseCreator{
                 response.setContentEncoding("gzip");
             }
         }
-        response.setServer(conf.getSeverHeader());
+        response.setServer(Configuration.getSeverHeader());
         return;
     }
 
@@ -315,7 +315,7 @@ public class ResponseCreator{
     private String eTag;
     private String contextName;
     private static Configuration conf = Main.getConf();
-    
+        
     // multiple threads change the following volatile variables
     private static volatile long resourcesReadFromDisk;
     private static volatile long resourcesReadFromCache;

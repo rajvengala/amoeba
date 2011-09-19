@@ -15,8 +15,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class LRUResourceCache extends LinkedHashMap<String, byte[]> {
     
-    public LRUResourceCache(int cacheCapacity){
-        super(conf.getInitialCacheSize(), conf.getCacheLoadFactor(), true);
+    public LRUResourceCache(int initCacheSize, float loadFactor, int cacheCapacity){
+        super(initCacheSize, loadFactor, true);
         this.cacheCapacity = cacheCapacity;
     }
 
@@ -31,5 +31,4 @@ public class LRUResourceCache extends LinkedHashMap<String, byte[]> {
         
     private int cacheCapacity;
     private Lock cacheLock = new ReentrantLock();
-    private static Configuration conf = Main.getConf();
 }

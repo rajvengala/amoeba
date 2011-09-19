@@ -44,15 +44,15 @@ public class RequestProcessor implements Runnable {
             key.selector().wakeup();
             
         } catch (UnsupportedEncodingException use){
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(use), use);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(use), use);
         } catch(IOException ioe){
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         } catch(InterruptedException ie){
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
         } catch(ParseException pe){
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(pe), pe);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(pe), pe);
         } catch(NoSuchAlgorithmException nsae){
-            Main.getLogger().log(Level.WARNING, Utilities.stackTraceToString(nsae), nsae);
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(nsae), nsae);
         }
     }
 
@@ -163,7 +163,7 @@ public class RequestProcessor implements Runnable {
                     tokens = line.split(":");
                     if(tokens.length == 2){
                         String ifModifiedSince = tokens[1].trim();
-                        long lastModifiedTime = Main.getDateFormat().parse(ifModifiedSince).getTime();
+                        long lastModifiedTime = Configuration.getSimpleDateFormat().parse(ifModifiedSince).getTime();
                         reqBean.setIfModifiedSince(lastModifiedTime);
                     }
                     break;

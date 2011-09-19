@@ -15,7 +15,10 @@ import java.nio.channels.spi.SelectorProvider;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,7 +77,12 @@ public class Main {
         // initialize configuration
         conf = new Configuration();
         
+        // read initial configuration
+        logger = Configuration.getLogger();
+                
+        sdf = Configuration.getSimpleDateFormat();
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+        
         String njasHome = System.getenv("AMOEBA_HOME");
         conf.setNjasHome(njasHome);
         if (njasHome == null) {
@@ -83,7 +91,7 @@ public class Main {
         }
 
         props = new Properties();
-        String propFilePath = njasHome + File.separator + "conf" + File.separator + CONF_FILE;
+        String propFilePath = njasHome + File.separator + "conf" + File.separator + Configuration.getConfFile();
         try {
             FileReader reader = new FileReader(propFilePath);
             props.load(reader);
@@ -99,7 +107,7 @@ public class Main {
     }
 
     /**
-     * Read properties from njas.conf file in NJAS_HOME/conf directory.
+     * Read properties from amoeba.conf file in AMOEBA_HOME/conf directory.
      */
     private static void readConfiguration() {
         conf.setHostname(props.getProperty("hostname"));
@@ -130,8 +138,8 @@ public class Main {
         conf.setCompression(Boolean.parseBoolean(props.getProperty("compression")));
         
         // log file
-        conf.setERRLOGFILSIZE(1024 * Integer.parseInt(props.getProperty("errorLogFileSize")));
-        conf.setERRLOGFILECOUNT(Integer.parseInt(props.getProperty("totalErrorLogFiles")));
+        conf.setErrLogFileSize(1024 * Integer.parseInt(props.getProperty("errorLogFileSize")));
+        conf.setErrLogFileCount(Integer.parseInt(props.getProperty("totalErrorLogFiles")));
 
         // maintenance
         conf.setMaintenance(Boolean.parseBoolean(props.getProperty("maintenance")));
@@ -141,6 +149,9 @@ public class Main {
         conf.setInitialCacheSize(Integer.parseInt(props.getProperty("initialCacheSize")));
         conf.setCacheLoadFactor(Float.parseFloat(props.getProperty("cacheLoadFactor")));
         conf.setCacheCapacity(Integer.parseInt(props.getProperty("cacheCapacity")));
+        
+        // channel timeout
+        conf.setIdleChannelTimeout(Integer.parseInt(props.getProperty("idleChannelTimeout")));
     }
 
     /**
@@ -171,8 +182,8 @@ public class Main {
         logger.info(message);
 
         try {
-            logFile = new FileHandler(logDir + File.separator + "njas_%g.log", conf.getERRLOGFILSIZE(), conf.getERRLOGFILECOUNT());
-            accessLog = new FileHandler(logDir + File.separator + "njas_access_%g.log", conf.getERRLOGFILSIZE(), conf.getERRLOGFILECOUNT());
+            logFile = new FileHandler(logDir + File.separator + "amoeba_%g.log", conf.getErrLogFileSize(), conf.getErrLogFileCount());
+            accessLog = new FileHandler(logDir + File.separator + "amoeba_access_%g.log", conf.getErrLogFileSize(), conf.getErrLogFileCount());
         } catch (IOException ioe) {
             logger.log(Level.SEVERE, ioe.toString(), ioe);
             System.exit(1);
@@ -204,7 +215,7 @@ public class Main {
     }
 
     /**
-     * Log configuration parameters read from njas.conf to console/file
+     * Log configuration parameters read from amoeba.conf to console/file
      */
     private static void logConfiguration() {
         logger.log(Level.INFO, "Hostname - {0}", conf.getHostname());
@@ -223,8 +234,8 @@ public class Main {
         logger.log(Level.INFO, "VirtualHost - {0}", conf.isVirtualHost());
         logger.log(Level.INFO, "Compression - {0}", conf.getCompression());
 
-        logger.log(Level.INFO, "Error log file size - {0} KB", conf.getERRLOGFILSIZE() / 1024);
-        logger.log(Level.INFO, "Total error log files - {0}", conf.getERRLOGFILECOUNT());
+        logger.log(Level.INFO, "Error log file size - {0} KB", conf.getErrLogFileSize() / 1024);
+        logger.log(Level.INFO, "Total error log files - {0}", conf.getErrLogFileCount());
 
         logger.log(Level.INFO, "In maintenance - {0}", conf.isMaintenance());
         logger.log(Level.INFO, "Max Age - {0} seconds for cacheable resources", conf.getMaxAge());
@@ -232,6 +243,8 @@ public class Main {
         logger.log(Level.INFO, "Cache : Initial size - {0}", conf.getInitialCacheSize());
         logger.log(Level.INFO, "Cache : Load factor - {0}", conf.getCacheLoadFactor());
         logger.log(Level.INFO, "Cache : Capacity - {0}", conf.getCacheCapacity());
+        
+        logger.log(Level.INFO, "Channel : Idle timeout - {0} nano seconds", conf.getIdleChannelTimeout());
     }
 
     /**
@@ -248,6 +261,8 @@ public class Main {
         responseMap = new ConcurrentHashMap<Long, ResponseBean>();
         requestsTimestampQueue = new ArrayBlockingQueue<Long>(conf.getRequestsTimestampQueueLength(), true);
         cacheMap = new ConcurrentHashMap<String, LRUResourceCache>();
+        idleChannelMap = new LinkedHashMap<SelectionKey, Long>(Configuration.getInitialIdleChannels(),
+                                                               Configuration.getIdleChannelsMapLoadFactor());
     }
 
     /**
@@ -297,7 +312,25 @@ public class Main {
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         logger.fine("Registered channel with selector to alert for clien accept connection request arrives ");
 
+        int channelTimeout = conf.getIdleChannelTimeout(); 
         while (true) {
+            // close idle channels if timeout is reached
+            Iterator<Entry<SelectionKey, Long>> idleChannelSetItr = idleChannelMap.entrySet().iterator();
+            while(idleChannelSetItr.hasNext()){
+                Entry<SelectionKey, Long> idleChannelEntry = idleChannelSetItr.next();
+                long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - idleChannelEntry.getValue());
+                if(idleTime >= channelTimeout){
+                    SelectionKey key = idleChannelEntry.getKey();
+                    SocketChannel socketChannel = (SocketChannel)key.channel();
+                    socketChannel.close();
+                    key.cancel();
+                    openSocketsCount--;
+                    idleChannelSetItr.remove();
+                } else {
+                    break;
+                }
+            }
+ 
             // wait for an event on one of the registered channels
             selector.select();
             
@@ -320,7 +353,7 @@ public class Main {
             
             // ugly work around to read the requests 
             // from the browser in the correct order
-            Thread.sleep(EVENT_LOOP_DELAY); 
+            Thread.sleep(conf.getEventLoopDelay()); 
         }
     }
     
@@ -374,6 +407,11 @@ public class Main {
             reqBean.setSelectionKey(key);
             reqBean.setTimestamp(timestamp);
             
+            // save the selection key in ChannelCloser Map
+            // channel close thread scans this map
+            // periodically and closes idle channels
+            idleChannelMap.put(key, timestamp);
+                        
             //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
 
             // put the request timestamp in the queue.
@@ -403,7 +441,7 @@ public class Main {
             return;
         } catch (InterruptedException ie) {
             logger.log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
-        }
+        } 
     }
 
     public static void writeToChannel(SelectionKey key) {
@@ -487,7 +525,7 @@ public class Main {
 
                 String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
 
-                Main.getLogger().log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ",
+                logger.log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ",
                         new Object[]{clientAddr, resource,
                             statusCode, totalBytesSent, respCacheTag});
             } else {
@@ -512,10 +550,6 @@ public class Main {
             return;
         }
     }
-
-    public static Logger getLogger() {
-        return logger;
-    }
     
     public static CustomThreadPoolExecutor getRequestProcessingThreadPool(){
         return requestProcessingThreadPool;
@@ -536,11 +570,7 @@ public class Main {
     public static ConcurrentHashMap<String, LRUResourceCache> getCacheMap(){
         return cacheMap;
     }
-   
-    public static SimpleDateFormat getDateFormat() {
-        return sdf;
-    }
-
+    
     /**
      * Creates/retrieves LRU cache to hold resources (image, javascript, css files etc)<br/>
      * Each web application has its own cache
@@ -553,7 +583,7 @@ public class Main {
         if (cacheMap.containsKey(contextName)) {
             lruCache = (LRUResourceCache) cacheMap.get(contextName);
         } else {
-            lruCache = new LRUResourceCache(conf.getCacheCapacity());
+            lruCache = new LRUResourceCache(conf.getInitialCacheSize(), conf.getCacheLoadFactor(), conf.getCacheCapacity());
             cacheMap.put(contextName, lruCache);
         }
         return lruCache;
@@ -581,9 +611,8 @@ public class Main {
     private static ConcurrentHashMap<Long, ResponseBean> responseMap;
     private static ArrayBlockingQueue<Long> requestsTimestampQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
+    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
     private static int openSocketsCount;
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
-    private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
-    private static final String CONF_FILE = "amoeba.conf";
-    private static final long EVENT_LOOP_DELAY = 30; // milli seconds
+    private static SimpleDateFormat sdf;
+    private static Logger logger;
 }

@@ -5,12 +5,63 @@
 package in.uglyhunk.amoeba.server;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.logging.Logger;
 
 /**
  *
  * @author rvengala
  */
 public class Configuration {
+
+    /**
+     * @return simpleDateFormat instance
+     */
+    public static SimpleDateFormat getSimpleDateFormat() {
+        return sdf;
+    }
+
+    /**
+     * @return the logger
+     */
+    public static Logger getLogger() {
+        return logger;
+    }
+
+    /**
+     * @return the CONF_FILE
+     */
+    public static String getConfFile() {
+        return CONF_FILE;
+    }
+
+    /**
+     * @return the EVENT_LOOP_DELAY
+     */
+    public static long getEventLoopDelay() {
+        return EVENT_LOOP_DELAY;
+    }
+
+    /**
+     * @return the initialConnectionsSize
+     */
+    public static int getInitialIdleChannels() {
+        return initialIdleChannels;
+    }
+
+    /**
+     * @return the totalConnectionsSize
+     */
+    public static int getTotalIdleChannels() {
+        return totalIdleChannels;
+    }
+
+    /**
+     * @return the connectiosLoadFactor
+     */
+    public static float getIdleChannelsMapLoadFactor() {
+        return idleChannelsMapLoadFactor;
+    }
 
     /**
      * @return the njasHome
@@ -36,8 +87,8 @@ public class Configuration {
     /**
      * @param aReadBufferCapacity the readBufferCapacity to set
      */
-    public void setReadBufferCapacity(int aReadBufferCapacity) {
-        readBufferCapacity = aReadBufferCapacity;
+    public void setReadBufferCapacity(int readBufferCapacity) {
+        this.readBufferCapacity = readBufferCapacity;
     }
 
     /**
@@ -50,8 +101,8 @@ public class Configuration {
     /**
      * @param aHostname the hostname to set
      */
-    public void setHostname(String aHostname) {
-        hostname = aHostname;
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
     }
 
     /**
@@ -64,8 +115,8 @@ public class Configuration {
     /**
      * @param aPort the port to set
      */
-    public void setPort(int aPort) {
-        port = aPort;
+    public void setPort(int port) {
+        this.port = port;
     }
 
     /**
@@ -120,8 +171,8 @@ public class Configuration {
     /**
      * @param aRequestQueueLength the requestQueueLength to set
      */
-    public void setRequestQueueLength(int aRequestQueueLength) {
-        requestQueueLength = aRequestQueueLength;
+    public void setRequestQueueLength(int requestQueueLength) {
+        this.requestQueueLength = requestQueueLength;
     }
 
     /**
@@ -148,36 +199,36 @@ public class Configuration {
     /**
      * @param aTtlForNonCoreThreads the ttlForNonCoreThreads to set
      */
-    public void setTtlForNonCoreThreads(long aTtlForNonCoreThreads) {
-        ttlForNonCoreThreads = aTtlForNonCoreThreads;
+    public void setTtlForNonCoreThreads(long ttlForNonCoreThreads) {
+        this.ttlForNonCoreThreads = ttlForNonCoreThreads;
     }
 
     /**
      * @return the ERRLOGFILSIZE
      */
-    public int getERRLOGFILSIZE() {
-        return ERRLOGFILSIZE;
+    public int getErrLogFileSize() {
+        return errLogFileSize;
     }
 
     /**
      * @param aERRLOGFILSIZE the ERRLOGFILSIZE to set
      */
-    public void setERRLOGFILSIZE(int aERRLOGFILSIZE) {
-        ERRLOGFILSIZE = aERRLOGFILSIZE;
+    public void setErrLogFileSize(int errLogFileSize) {
+        this.errLogFileSize = errLogFileSize;
     }
 
     /**
      * @return the ERRLOGFILECOUNT
      */
-    public int getERRLOGFILECOUNT() {
-        return ERRLOGFILECOUNT;
+    public int getErrLogFileCount() {
+        return errLogFileCount;
     }
 
     /**
      * @param aERRLOGFILECOUNT the ERRLOGFILECOUNT to set
      */
-    public void setERRLOGFILECOUNT(int aERRLOGFILECOUNT) {
-        ERRLOGFILECOUNT = aERRLOGFILECOUNT;
+    public void setErrLogFileCount(int errLogFileCount) {
+        this.errLogFileCount = errLogFileCount;
     }
 
     /**
@@ -190,8 +241,8 @@ public class Configuration {
     /**
      * @param aDocumentRoot the documentRoot to set
      */
-    public void setDocumentRoot(String aDocumentRoot) {
-        documentRoot = aDocumentRoot;
+    public void setDocumentRoot(String documentRoot) {
+        this.documentRoot = documentRoot;
     }
 
     /**
@@ -204,8 +255,8 @@ public class Configuration {
     /**
      * @param aVirtualHost the virtualHost to set
      */
-    public void setVirtualHost(boolean aVirtualHost) {
-        virtualHost = aVirtualHost;
+    public void setVirtualHost(boolean virtualHost) {
+        this.virtualHost = virtualHost;
     }
 
     /**
@@ -232,8 +283,8 @@ public class Configuration {
     /**
      * @param aMaintenance the maintenance to set
      */
-    public void setMaintenance(boolean aMaintenance) {
-        maintenance = aMaintenance;
+    public void setMaintenance(boolean maintenance) {
+        this.maintenance = maintenance;
     }
 
     /**
@@ -246,8 +297,8 @@ public class Configuration {
     /**
      * @param aMaxAge the maxAge to set
      */
-    public void setMaxAge(long aMaxAge) {
-        maxAge = aMaxAge;
+    public void setMaxAge(long maxAge) {
+        this.maxAge = maxAge;
     }
 
     /**
@@ -274,8 +325,8 @@ public class Configuration {
     /**
      * @param aCacheLoadFactor the cacheLoadFactor to set
      */
-    public void setCacheLoadFactor(float aCacheLoadFactor) {
-        cacheLoadFactor = aCacheLoadFactor;
+    public void setCacheLoadFactor(float cacheLoadFactor) {
+        this.cacheLoadFactor = cacheLoadFactor;
     }
 
     /**
@@ -295,14 +346,14 @@ public class Configuration {
     /**
      * @return the CLASSES
      */
-    public String getClasses() {
+    public static String getClasses() {
         return CLASSES;
     }
 
     /**
      * @return the DEFAULT_CONTEXT
      */
-    public String getDefaultContext() {
+    public static String getDefaultContext() {
         return DEFAULT_CONTEXT;
     }
 
@@ -316,8 +367,23 @@ public class Configuration {
     /**
      * @return the SERVER_HEADER
      */
-    public String getSeverHeader() {
+    public static String getSeverHeader() {
         return SERVER_HEADER;
+    }
+    
+    
+    /**
+     * @return the idleChannelTimeout
+     */
+    public int getIdleChannelTimeout() {
+        return idleChannelTimeout;
+    }
+
+    /**
+     * @param idleChannelTimeout the idleChannelTimeout to set
+     */
+    public void setIdleChannelTimeout(int idleChannelTimeout) {
+        this.idleChannelTimeout = idleChannelTimeout;
     }
     
     private int readBufferCapacity; // in bytes
@@ -329,8 +395,8 @@ public class Configuration {
     private int requestQueueLength;
     private int requestsTimestampQueueLength;
     private long ttlForNonCoreThreads;
-    private int ERRLOGFILSIZE; // KB
-    private int ERRLOGFILECOUNT;// max log file count
+    private int errLogFileSize; // KB
+    private int errLogFileCount;// max log file count
     private String documentRoot;
     private boolean virtualHost;
     private boolean compression;
@@ -340,9 +406,16 @@ public class Configuration {
     private float cacheLoadFactor;
     private int cacheCapacity;
     private String njasHome; // environment variable
+    private int idleChannelTimeout; // seconds
+    private static final int initialIdleChannels = 200;
+    private static final int totalIdleChannels = 1000;
+    private static final float idleChannelsMapLoadFactor = 0.75F;
     private static final String CLASSES = "bin";
     private static final String DEFAULT_CONTEXT = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
-    private static final String SERVER_HEADER = "Nano Java App Server 0.1";
-    
+    private static final String SERVER_HEADER = "Amoeba 0.1.0";
+    private static final String CONF_FILE = "amoeba.conf";
+    private static final long EVENT_LOOP_DELAY = 30; // milli seconds
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
+    private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
 }
