@@ -74,8 +74,8 @@ public class ResponseCreator{
 
     private void prepareResponseBody(String resource) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
        try {
-            // if the resourcePath absolute path contains "dynbin" string
-            // pass them to user classes in classes directory directory
+            // if the resourcePath absolute path contains "dyn" string,
+            // pass them to user classes in CLASSES sub-directory
             if(resourcePath.toString().contains(Configuration.getClasses())) {
                 // have a properties file in each webapp folder
                 // and load appropriate class
@@ -158,8 +158,7 @@ public class ResponseCreator{
                 if(conf.getCompression() && isCompressable(resourceType)){
                     compress(responseBodyByteBuffer.array());
                 } else {
-                    // either compression is enabler or resource
-                    // is not compressable
+                    // either compression is disabled or resource is not compressable
                     respContentLength = resourceSize;
                     response.setBody(responseBodyByteBuffer);
                 }
@@ -233,7 +232,7 @@ public class ResponseCreator{
                 }
             }
         }
-        return "text/html";
+        return "application/" + resourceType;
     }
     
     private boolean isCompressable(String resourceType){

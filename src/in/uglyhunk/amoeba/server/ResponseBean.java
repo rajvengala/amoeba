@@ -19,7 +19,7 @@ public class ResponseBean {
     /**
      * @return the statusCode
      */
-    public String getStatusCode() {
+    String getStatusCode() {
         return statusCode;
     }
 
@@ -33,21 +33,21 @@ public class ResponseBean {
     /**
      * @return the statusLine
      */
-    public String getStatusLine() {
+    String getStatusLine() {
         return statusLine;
     }
 
     /**
      * @param statusLine the statusLine to set
      */
-    public void setStatusLine(String statusLine) {
+    void setStatusLine(String statusLine) {
         this.statusLine = statusLine;
     }
 
     /**
      * @return the contentType
      */
-    public String getContentType() {
+    String getContentType() {
         return contentType;
     }
 
@@ -61,63 +61,63 @@ public class ResponseBean {
     /**
      * @return the contentLength
      */
-    public String getContentLength() {
+    String getContentLength() {
         return contentLength;
     }
 
     /**
      * @param contentLength the contentLength to set
      */
-    public void setContentLength(String contentLength) {
+    void setContentLength(String contentLength) {
         this.contentLength = contentLength;
     }
 
     /**
      * @return the server
      */
-    public String getServer() {
+    String getServer() {
         return server;
     }
 
     /**
      * @param server the server to set
      */
-    public void setServer(String server) {
+    void setServer(String server) {
         this.server = server;
     }
 
     /**
      * @return the connection
      */
-    public String getConnection() {
+    String getConnection() {
         return connection;
     }
 
     /**
      * @param connection the connection to set
      */
-    public void setConnection(String connection) {
+    void setConnection(String connection) {
         this.connection = connection;
     }
 
     /**
      * @return the contentEncoding
      */
-    public String getContentEncoding() {
+    String getContentEncoding() {
         return contentEncoding;
     }
 
     /**
      * @param contentEncoding the contentEncoding to set
      */
-    public void setContentEncoding(String contentEncoding) {
+    void setContentEncoding(String contentEncoding) {
         this.contentEncoding = contentEncoding;
     }
 
     /**
      * @return the body
      */
-    public ByteBuffer getBody() {
+    ByteBuffer getBody() {
         return body;
     }
 
@@ -131,42 +131,42 @@ public class ResponseBean {
      /**
      * @return the socketChannel
      */
-    public SocketChannel getSocketChannel() {
+    SocketChannel getSocketChannel() {
         return socketChannel;
     }
 
     /**
      * @param socketChannel the socketChannel to set
      */
-    public void setSocketChannel(SocketChannel socketChannel) {
+    void setSocketChannel(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
     }
 
       /**
      * @return the absoluteResource
      */
-    public String getAbsoluteResource() {
+    String getAbsoluteResource() {
         return absoluteResource;
     }
 
     /**
      * @param absoluteResource the absoluteResource to set
      */
-    public void setAbsoluteResource(String absoluteResource) {
+    void setAbsoluteResource(String absoluteResource) {
         this.absoluteResource = absoluteResource;
     }
     
    /**
      * @return the selectionKey
      */
-    public SelectionKey getSelectionKey() {
+    SelectionKey getSelectionKey() {
         return selectionKey;
     }
 
     /**
      * @param selectionKey the selectionKey to set
      */
-    public void setSelectionKey(SelectionKey selectionKey) {
+    void setSelectionKey(SelectionKey selectionKey) {
         this.selectionKey = selectionKey;
     }
     
@@ -174,36 +174,36 @@ public class ResponseBean {
     /**
      * @return the getLastModified
      */
-    public long getLastModified() {
+    long getLastModified() {
         return lastModified;
     }
 
     /**
      * @param getLastModified the getLastModified to set
      */
-    public void setLastModified(long lastModified) {
+    void setLastModified(long lastModified) {
         this.lastModified = lastModified;
     }
 
     /**
      * @return the eTag
      */
-    public String getETag() {
+    String getETag() {
         return eTag;
     }
 
     /**
      * @param eTag the eTag to set
      */
-    public void setETag(String eTag) {
+    void setETag(String eTag) {
         this.eTag = eTag;
     }
     
-    public void setresponseCacheTag(String tag){
+    void setresponseCacheTag(String tag){
         this.responseCacheTag = tag;
     }
     
-    public String getresponseCacheTag(){
+    String getresponseCacheTag(){
         return responseCacheTag;
     }
         

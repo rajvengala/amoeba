@@ -25,7 +25,7 @@ public class RequestBean {
     /**
      * @param method the method to set
      */
-    public void setMethod(String method) {
+    void setMethod(String method) {
         this.method = method;
     }
 
@@ -39,7 +39,7 @@ public class RequestBean {
     /**
      * @param resource the resource to set
      */
-    public void setResource(String resource) {
+    void setResource(String resource) {
         this.resource = resource;
     }
 
@@ -53,7 +53,7 @@ public class RequestBean {
     /**
      * @param resource the resource to set
      */
-    public void setQueryString(String queryString) {
+    void setQueryString(String queryString) {
         this.queryString = queryString;
     }
 
@@ -67,7 +67,7 @@ public class RequestBean {
     /**
      * @param httpVersion the httpVersion to set
      */
-    public void setHttpVersion(String httpVersion) {
+    void setHttpVersion(String httpVersion) {
         this.httpVersion = httpVersion;
     }
 
@@ -81,7 +81,7 @@ public class RequestBean {
     /**
      * @param accept the accept to set
      */
-    public void setAccept(String accept) {
+    void setAccept(String accept) {
         this.accept = accept;
     }
 
@@ -95,7 +95,7 @@ public class RequestBean {
     /**
      * @param acceptLanguage the acceptLanguage to set
      */
-    public void setAcceptLanguage(String acceptLanguage) {
+    void setAcceptLanguage(String acceptLanguage) {
         this.acceptLanguage = acceptLanguage;
     }
 
@@ -109,7 +109,7 @@ public class RequestBean {
     /**
      * @param userAgent the userAgent to set
      */
-    public void setUserAgent(String userAgent) {
+    void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
     }
 
@@ -123,7 +123,7 @@ public class RequestBean {
     /**
      * @param acceptEncoding the acceptEncoding to set
      */
-    public void setAcceptEncoding(String acceptEncoding) {
+    void setAcceptEncoding(String acceptEncoding) {
         this.acceptEncoding = acceptEncoding;
     }
 
@@ -137,7 +137,7 @@ public class RequestBean {
     /**
      * @param acceptEncoding the acceptEncoding to set
      */
-    public void setAcceptCharset(String acceptCharset) {
+    void setAcceptCharset(String acceptCharset) {
         this.acceptCharset = acceptCharset;
     }
 
@@ -151,7 +151,7 @@ public class RequestBean {
     /**
      * @param host the host to set
      */
-    public void setHost(String host) {
+    void setHost(String host) {
         this.host = host;
     }
 
@@ -165,7 +165,7 @@ public class RequestBean {
     /**
      * @param connection the connection to set
      */
-    public void setConnection(String connection) {
+    void setConnection(String connection) {
         this.connection = connection;
     }
 
@@ -179,7 +179,7 @@ public class RequestBean {
     /**
      * @param referer the referer to set
      */
-    public void setReferer(String referer) {
+    void setReferer(String referer) {
         this.referer = referer;
     }
 
@@ -193,7 +193,7 @@ public class RequestBean {
     /**
      * @param cookie the cookie to set
      */
-    public void setCookie(String cookie) {
+    void setCookie(String cookie) {
         this.cookie = cookie;
     }
 
@@ -207,7 +207,7 @@ public class RequestBean {
     /**
      * @param contentType the contentType to set
      */
-    public void setContentType(String contentType) {
+    void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
@@ -221,7 +221,7 @@ public class RequestBean {
     /**
      * @param contentLength the contentLength to set
      */
-    public void setContentLength(String contentLength) {
+    void setContentLength(String contentLength) {
         this.contentLength = Integer.parseInt(contentLength);
     }
 
@@ -235,7 +235,7 @@ public class RequestBean {
     /**
      * @param cacheControl the cacheControl to set
      */
-    public void setCacheControl(String cacheControl) {
+    void setCacheControl(String cacheControl) {
         this.cacheControl = cacheControl;
     }
 
@@ -249,7 +249,7 @@ public class RequestBean {
     /**
      * @param body the body to set
      */
-    public void setBody(String body) {
+    void setBody(String body) {
         this.body = body;
     }
 
@@ -265,7 +265,7 @@ public class RequestBean {
     /**
      * @param rawRequest the rawRequest to set
      */
-    public void setRawRequest(String rawRequest) {
+    void setRawRequest(String rawRequest) {
         this.rawRequest = rawRequest;
     }
 
@@ -280,7 +280,7 @@ public class RequestBean {
     /**
      * @param rawRequest the rawRequest to set
      */
-    public void setSelectionKey(SelectionKey key) {
+    void setSelectionKey(SelectionKey key) {
         selectionKey = key;
     }
     
@@ -294,7 +294,7 @@ public class RequestBean {
     /**
      * @param timestamp the timestamp to set
      */
-    public void setTimestamp(long timestamp) {
+    void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -308,7 +308,7 @@ public class RequestBean {
     /**
      * @param rawRequestBytes the rawRequestBytes to set
      */
-    public void setRawRequestBytes(byte[] rawRequestBytes) {
+    void setRawRequestBytes(byte[] rawRequestBytes) {
         this.rawRequestBytes = rawRequestBytes;
     }
     
@@ -323,7 +323,7 @@ public class RequestBean {
     /**
      * @param ifModifiedSince the ifModifiedSince to set
      */
-    public void setIfModifiedSince(long ifModifiedSince) {
+    void setIfModifiedSince(long ifModifiedSince) {
         this.ifModifiedSince = ifModifiedSince;
     }
 
@@ -337,7 +337,7 @@ public class RequestBean {
     /**
      * @param eTag the eTag to set
      */
-    public void setETag(String eTag) {
+    void setETag(String eTag) {
         this.eTag = eTag;
     }
   

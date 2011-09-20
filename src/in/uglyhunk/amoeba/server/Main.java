@@ -244,7 +244,7 @@ public class Main {
         logger.log(Level.INFO, "Cache : Load factor - {0}", conf.getCacheLoadFactor());
         logger.log(Level.INFO, "Cache : Capacity - {0}", conf.getCacheCapacity());
         
-        logger.log(Level.INFO, "Channel : Idle timeout - {0} nano seconds", conf.getIdleChannelTimeout());
+        logger.log(Level.INFO, "Channel : Idle timeout - {0} seconds", conf.getIdleChannelTimeout());
     }
 
     /**

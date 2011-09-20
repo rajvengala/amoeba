@@ -410,7 +410,9 @@ public class Configuration {
     private static final int initialIdleChannels = 200;
     private static final int totalIdleChannels = 1000;
     private static final float idleChannelsMapLoadFactor = 0.75F;
-    private static final String CLASSES = "bin";
+    // classes dynamic requests are kept in CLASSES folder
+    // inside each CONTEXT folder
+    private static final String CLASSES = "CLASSES"; 
     private static final String DEFAULT_CONTEXT = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
     private static final String SERVER_HEADER = "Amoeba 0.1.0";
