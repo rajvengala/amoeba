@@ -426,6 +426,7 @@ public class Configuration {
     private static final int initialIdleChannels = 200;
     private static final int totalIdleChannels = 1000;
     private static final float idleChannelsMapLoadFactor = 0.75F;
+    
     // classes dynamic requests are kept in CLASSES folder
     // inside each CONTEXT folder
     private static final String DYN_CLASS_TAG = "CLASSES"; 

@@ -96,14 +96,12 @@ public class ResponseCreator{
             // pass them to user classes in CLASSES sub-directory
            
             // resourcePath format - <DOC_ROOT>/<CONTEXT>/CLASSES/getStockQuote
-            if(resourcePath.toString().contains(Configuration.getDynamicClassTag())) {
+           String dynClassTag = Configuration.getDynamicClassTag();
+            if(resourcePath.toString().contains(dynClassTag)) {
                 // check if the class loader exists for this context
-                // if exists, check the class is already loaded
-                // if loaded, create a new instance of the class
-                // if the loaded does not exist, create new loader
-                // save it in a map, load the class file from the disk
-                // and define it to the JVM
-                String className = resourcePath.toString().split("CLASSES\\.")[1];
+                // if exists, if not, create new loader and
+                // save it in a map and load the class file 
+                String className = resourcePath.toString().split(dynClassTag + "/")[1];
                 AmoebaClassLoader classLoader = null;
                 if(classLoaderMap.contains(className)){
                     // classloader instance already created for this context
@@ -113,11 +111,17 @@ public class ResponseCreator{
                 } else {
                     // no classloader for this context
                     // create a new class loader and put it in class loader map
-                    classLoader = new AmoebaClassLoader(contextName);
+                    String absoluteContextPath = resourcePath.toString().split("/" + dynClassTag)[0];
+                    classLoader = new AmoebaClassLoader(absoluteContextPath);
                     classLoaderMap.put(contextName, classLoader);
                 }
                 
-                DynamicRequest dynamicReq = (DynamicRequest) classLoader.loadClass(className).newInstance();
+                // retrieve full class name from class name
+                // eg: main => in.uglyhunk.amoeba.server.Main
+                HashMap<String, String> classMap = contextMap.get(contextName);
+                String fullClassName = classMap.get(className);
+                                
+                DynamicRequest dynamicReq = (DynamicRequest) classLoader.loadClass(fullClassName).newInstance();
                 dynamicReq.process(request, response);
             } else {
                 // if the request is for a static resourcePath

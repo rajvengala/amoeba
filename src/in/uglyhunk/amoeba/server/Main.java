@@ -60,8 +60,8 @@ public class Main {
             loadAmoebaConfig();
             readAmoebaConfig();
             setupHandlers();
+            setupRunTimeDataStructures();
             readContextConfig();
-            setupDataStructures();
             setupWorkerThreads();
             startJMXAgent();
             logConfiguration();
@@ -242,9 +242,10 @@ public class Main {
         ArrayList<String> contextConfPaths = new ArrayList<String>();
         ArrayList<String> contexts = new ArrayList<String>();
         if(!conf.isVirtualHost()){
-            // eg: /var/www/default/context.conf
+            // eg: /var/www/default/CLASSES/context.conf
             String context = Configuration.getDefaultContext();
             String defaultContextConfPath = documentRoot.toString() + File.separator + context + 
+                                            File.separator + Configuration.getDynamicClassTag() + 
                                             File.separator + Configuration.getContextConfFile();
             contextConfPaths.add(defaultContextConfPath);
             contexts.add(context);
@@ -252,8 +253,9 @@ public class Main {
             for(File file : docRootFiles){
                 if(file.isDirectory() & !file.getName().equalsIgnoreCase(Configuration.getDefaultContext())){
                     String context = file.getName();
-                    // eg: /var/www/xyz/context.conf
+                    // eg: /var/www/xyz/CLASSES/context.conf
                     String contextConfPath = documentRoot.toString() + File.separator + context +
+                                             File.separator + Configuration.getDynamicClassTag() + 
                                              File.separator + Configuration.getContextConfFile();
                     contextConfPaths.add(contextConfPath);
                     contexts.add(context);
@@ -299,7 +301,7 @@ public class Main {
      * of the request as key <br/>
      * 
      */
-    private static void setupDataStructures() {
+    private static void setupRunTimeDataStructures() {
         RuntimeData.setRequestQueue(new ArrayBlockingQueue<RequestBean>(conf.getRequestQueueLength(), true));
         RuntimeData.setResponseMap(new ConcurrentHashMap<Long, ResponseBean>());
         RuntimeData.setRequestsTimestampQueue(new ArrayBlockingQueue<Long>(conf.getRequestsTimestampQueueLength(), true));
