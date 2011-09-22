@@ -18,7 +18,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +28,10 @@ import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.logging.Filter;
 
 /**
  * Contains the <b>main</b> method to run the application server
@@ -54,13 +57,14 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            loadConfiguration();
-            readConfiguration();
+            loadAmoebaConfig();
+            readAmoebaConfig();
             setupHandlers();
-            logConfiguration();
+            readContextConfig();
             setupDataStructures();
             setupWorkerThreads();
-            startMonitoringAgent();
+            startJMXAgent();
+            logConfiguration();
             runDaemon();
         } catch (Exception e) {
             logger.log(Level.SEVERE, Utilities.stackTraceToString(e), e);
@@ -73,9 +77,9 @@ public class Main {
      * - Reads AMOEBA_HOME environment variable <br/>
      * - Loads amoeba.conf properties file in AMOEBA_HOME/conf directory <br/>
      */
-    private static void loadConfiguration() {
+    private static void loadAmoebaConfig() {
         // initialize configuration
-        conf = new Configuration();
+        conf = Configuration.getInstance();
         
         // read initial configuration
         logger = Configuration.getLogger();
@@ -90,11 +94,11 @@ public class Main {
             System.exit(1);
         }
 
-        props = new Properties();
+        amoebaProps = new Properties();
         String propFilePath = njasHome + File.separator + "conf" + File.separator + Configuration.getConfFile();
         try {
             FileReader reader = new FileReader(propFilePath);
-            props.load(reader);
+            amoebaProps.load(reader);
         } catch (FileNotFoundException fnfe) {
             System.out.println("Configuration file not found");
             System.out.println(fnfe.toString());
@@ -109,49 +113,49 @@ public class Main {
     /**
      * Read properties from amoeba.conf file in AMOEBA_HOME/conf directory.
      */
-    private static void readConfiguration() {
-        conf.setHostname(props.getProperty("hostname"));
-        conf.setPort(Integer.parseInt(props.getProperty("port")));
+    private static void readAmoebaConfig() {
+        conf.setHostname(amoebaProps.getProperty("hostname"));
+        conf.setPort(Integer.parseInt(amoebaProps.getProperty("port")));
 
         // read buffer properties
-        conf.setReadBufferCapacity(Integer.parseInt(props.getProperty("readBufferCapacity")) * 1024);
+        conf.setReadBufferCapacity(Integer.parseInt(amoebaProps.getProperty("readBufferCapacity")) * 1024);
         
         // request processing threads
-        conf.setMinRequestProcessingThreads(Integer.parseInt(props.getProperty("minRequestProcessingThreads")));
-        conf.setMaxRequestProcessingThreads(Integer.parseInt(props.getProperty("maxRequestProcessingThreads")));
-        conf.setTtlForNonCoreThreads(Integer.parseInt(props.getProperty("ttlForNonCoreThreads")));
+        conf.setMinRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("minRequestProcessingThreads")));
+        conf.setMaxRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("maxRequestProcessingThreads")));
+        conf.setTtlForNonCoreThreads(Integer.parseInt(amoebaProps.getProperty("ttlForNonCoreThreads")));
         
         // tasks queue
-        conf.setThreadPoolQueueLength(Integer.parseInt(props.getProperty("threadPoolQueueLength")));
+        conf.setThreadPoolQueueLength(Integer.parseInt(amoebaProps.getProperty("threadPoolQueueLength")));
         
         // request queue
-        int reqQueueLength = Integer.parseInt(props.getProperty("requestQueueLength"));
+        int reqQueueLength = Integer.parseInt(amoebaProps.getProperty("requestQueueLength"));
         conf.setRequestQueueLength(reqQueueLength);
         // queue length of request timestamps is same as that of for raw requests
         conf.setRequestsTimestampQueueLength(reqQueueLength);
         
         // web root
-        conf.setDocumentRoot(props.getProperty("documentRoot"));
-        conf.setVirtualHost(Boolean.parseBoolean(props.getProperty("virtualHost")));
+        conf.setDocumentRoot(amoebaProps.getProperty("documentRoot"));
+        conf.setVirtualHost(Boolean.parseBoolean(amoebaProps.getProperty("virtualHost")));
 
         // compression
-        conf.setCompression(Boolean.parseBoolean(props.getProperty("compression")));
+        conf.setCompression(Boolean.parseBoolean(amoebaProps.getProperty("compression")));
         
         // log file
-        conf.setErrLogFileSize(1024 * Integer.parseInt(props.getProperty("errorLogFileSize")));
-        conf.setErrLogFileCount(Integer.parseInt(props.getProperty("totalErrorLogFiles")));
+        conf.setErrLogFileSize(1024 * Integer.parseInt(amoebaProps.getProperty("errorLogFileSize")));
+        conf.setErrLogFileCount(Integer.parseInt(amoebaProps.getProperty("totalErrorLogFiles")));
 
         // maintenance
-        conf.setMaintenance(Boolean.parseBoolean(props.getProperty("maintenance")));
+        conf.setMaintenance(Boolean.parseBoolean(amoebaProps.getProperty("maintenance")));
         
         // cache
-        conf.setMaxAge(Long.parseLong(props.getProperty("maxAge")));
-        conf.setInitialCacheSize(Integer.parseInt(props.getProperty("initialCacheSize")));
-        conf.setCacheLoadFactor(Float.parseFloat(props.getProperty("cacheLoadFactor")));
-        conf.setCacheCapacity(Integer.parseInt(props.getProperty("cacheCapacity")));
+        conf.setMaxAge(Long.parseLong(amoebaProps.getProperty("maxAge")));
+        conf.setInitialCacheSize(Integer.parseInt(amoebaProps.getProperty("initialCacheSize")));
+        conf.setCacheLoadFactor(Float.parseFloat(amoebaProps.getProperty("cacheLoadFactor")));
+        conf.setCacheCapacity(Integer.parseInt(amoebaProps.getProperty("cacheCapacity")));
         
         // channel timeout
-        conf.setIdleChannelTimeout(Integer.parseInt(props.getProperty("idleChannelTimeout")));
+        conf.setIdleChannelTimeout(Integer.parseInt(amoebaProps.getProperty("idleChannelTimeout")));
     }
 
     /**
@@ -200,7 +204,15 @@ public class Main {
         });
 
         accessLog.setLevel(Level.FINER);
-        accessLog.setFilter(new AccessLogFilter());
+        accessLog.setFilter(new Filter(){
+            public boolean isLoggable(LogRecord lr){
+                if(lr.getLevel() == Level.FINER)
+                    return true;
+
+                return false;
+            }
+        });
+        
         accessLog.setFormatter(new Formatter() {
 
             @Override
@@ -214,7 +226,114 @@ public class Main {
         logger.addHandler(accessLog);
     }
 
+    /*
+     * Read context configuration file
+     */
+    private static void readContextConfig(){
+        // document root eg: /var/www
+        File documentRoot = new File(conf.getDocumentRoot());
+        if(!documentRoot.exists() || documentRoot.isFile()){
+            logger.log(Level.SEVERE, "Document root does not exist");
+            System.exit(1);
+        }
+        
+        // list all the files inside the document root 
+        File docRootFiles[] = documentRoot.listFiles();
+        ArrayList<String> contextConfPaths = new ArrayList<String>();
+        ArrayList<String> contexts = new ArrayList<String>();
+        if(!conf.isVirtualHost()){
+            // eg: /var/www/default/context.conf
+            String context = Configuration.getDefaultContext();
+            String defaultContextConfPath = documentRoot.toString() + File.separator + context + 
+                                            File.separator + Configuration.getContextConfFile();
+            contextConfPaths.add(defaultContextConfPath);
+            contexts.add(context);
+        } else {
+            for(File file : docRootFiles){
+                if(file.isDirectory() & !file.getName().equalsIgnoreCase(Configuration.getDefaultContext())){
+                    String context = file.getName();
+                    // eg: /var/www/xyz/context.conf
+                    String contextConfPath = documentRoot.toString() + File.separator + context +
+                                             File.separator + Configuration.getContextConfFile();
+                    contextConfPaths.add(contextConfPath);
+                    contexts.add(context);
+                }
+            }
+        }
+    
+        int index = 0;
+        for(String contextConfPath : contextConfPaths){
+            Properties contextProps = new Properties();
+            try {
+                // read the props inside the context configuration file
+                FileReader reader = new FileReader(contextConfPath);
+                contextProps.load(reader);
+
+                HashMap<String, String> dynamicClassesMap = new HashMap<String, String>();
+                Iterator<Entry<Object, Object>> itr = contextProps.entrySet().iterator();
+                while(itr.hasNext()){
+                    Entry<Object, Object> itrEntry = itr.next();
+                    String className = (String) itrEntry.getKey();
+                    String fullClassName = (String) itrEntry.getValue();
+                    dynamicClassesMap.put(className, fullClassName);
+                }
+                RuntimeData.getContextMap().put(contexts.get(index), dynamicClassesMap);
+            } catch (FileNotFoundException fnfe) {
+                logger.log(Level.WARNING, "Configuration file, context.conf, is not found for the context {0}", contexts.get(index));
+                //logger.log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
+            } catch (IOException ioe) {
+                logger.log(Level.WARNING, "Error while parsing configuration file, context.conf, for the context {0}", contexts.get(index));
+                //logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            }
+            index++;
+        }
+    }
+    
+    
     /**
+     * Sets up the following data structures <br/>
+     * <i>requestQueue</i> - Queue of size <i>requestQueueLength</i> to hold the requests from clients <br/>
+     * <i>requestsTimestampQueue</i> - Queue of size <i>requestsTimestampQueue</i> to hold the timestamps of requests 
+     * from the clients in the order their arrival <br/>
+     * <i>responseMap</i> - processed requests from the requestQueue will be stored in this map with timestamp
+     * of the request as key <br/>
+     * 
+     */
+    private static void setupDataStructures() {
+        RuntimeData.setRequestQueue(new ArrayBlockingQueue<RequestBean>(conf.getRequestQueueLength(), true));
+        RuntimeData.setResponseMap(new ConcurrentHashMap<Long, ResponseBean>());
+        RuntimeData.setRequestsTimestampQueue(new ArrayBlockingQueue<Long>(conf.getRequestsTimestampQueueLength(), true));
+        RuntimeData.setCacheMap(new ConcurrentHashMap<String, LRUResourceCache>());
+        RuntimeData.setClassLoaderMap(new ConcurrentHashMap<String, AmoebaClassLoader>());
+        RuntimeData.setIdleChannelMap(new LinkedHashMap<SelectionKey, Long>(Configuration.getInitialIdleChannels(),
+                                                               Configuration.getIdleChannelsMapLoadFactor()));
+        RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
+    }
+
+    
+    /**
+     * requestProcessingThreadPool - Each thread in the pool takes the request from the requestQueue and saves the
+     * response in the response map. If the response is cacheable, it saves the response in the lruCache. Thread pool
+     * has the default running threads of <i>coreRequestProcessingThreads</i>, maximum threads of 
+     * <i>maxRequestProcessingThreads</i>
+     * and a timeout for non-core running threads of <i>ttlForNonCoreThreads</i>. This pool has an associated queue of length
+     * <i>tasksQueueLength</i>. This queue will be used to hold the requests from requestQueue temporarily if thread pool
+     * can not allocate any more threads to process the request.
+     * 
+     */
+    private static void setupWorkerThreads() {
+        // each http request from the request queue is prepared as task
+        // and submitted to a pool of threads
+        RuntimeData.setThreadPoolQueue(new ArrayBlockingQueue<Runnable>(conf.getThreadPoolQueueLength()));
+        RuntimeData.setRequestProcessingThreadPool(new AmoebaThreadPoolExecutor(
+                                        conf.getMinRequestProcessingThreads(),
+                                        conf.getMaxRequestProcessingThreads(),
+                                        conf.getTtlForNonCoreThreads(),
+                                        TimeUnit.SECONDS,
+                                        RuntimeData.getThreadPoolQueue()));
+    }
+    
+     /**
      * Log configuration parameters read from amoeba.conf to console/file
      */
     private static void logConfiguration() {
@@ -246,46 +365,9 @@ public class Main {
         
         logger.log(Level.INFO, "Channel : Idle timeout - {0} seconds", conf.getIdleChannelTimeout());
     }
-
-    /**
-     * Sets up the following data structures <br/>
-     * <i>requestQueue</i> - Queue of size <i>requestQueueLength</i> to hold the requests from clients <br/>
-     * <i>requestsTimestampQueue</i> - Queue of size <i>requestsTimestampQueue</i> to hold the timestamps of requests 
-     * from the clients in the order their arrival <br/>
-     * <i>responseMap</i> - processed requests from the requestQueue will be stored in this map with timestamp
-     * of the request as key <br/>
-     * 
-     */
-    private static void setupDataStructures() {
-        requestQueue = new ArrayBlockingQueue<RequestBean>(conf.getRequestQueueLength(), true);
-        responseMap = new ConcurrentHashMap<Long, ResponseBean>();
-        requestsTimestampQueue = new ArrayBlockingQueue<Long>(conf.getRequestsTimestampQueueLength(), true);
-        cacheMap = new ConcurrentHashMap<String, LRUResourceCache>();
-        idleChannelMap = new LinkedHashMap<SelectionKey, Long>(Configuration.getInitialIdleChannels(),
-                                                               Configuration.getIdleChannelsMapLoadFactor());
-    }
-
-    /**
-     * requestProcessingThreadPool - Each thread in the pool takes the request from the requestQueue and saves the
-     * response in the response map. If the response is cacheable, it saves the response in the lruCache. Thread pool
-     * has the default running threads of <i>coreRequestProcessingThreads</i>, maximum threads of 
-     * <i>maxRequestProcessingThreads</i>
-     * and a timeout for non-core running threads of <i>ttlForNonCoreThreads</i>. This pool has an associated queue of length
-     * <i>tasksQueueLength</i>. This queue will be used to hold the requests from requestQueue temporarily if thread pool
-     * can not allocate any more threads to process the request.
-     * 
-     */
-    private static void setupWorkerThreads() {
-        // each http request from the request queue is prepared as task
-        // and submitted to a pool of threads
-        threadPoolQueue = new ArrayBlockingQueue<Runnable>(conf.getThreadPoolQueueLength());
-
-        requestProcessingThreadPool = new CustomThreadPoolExecutor(
-                                        conf.getMinRequestProcessingThreads(),
-                                        conf.getMaxRequestProcessingThreads(),
-                                        conf.getTtlForNonCoreThreads(),
-                                        TimeUnit.SECONDS,
-                                        threadPoolQueue);
+    
+    private static void startJMXAgent(){
+        new AmoebaMonitoringAgent();
     }
 
     /**
@@ -312,6 +394,13 @@ public class Main {
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         logger.fine("Registered channel with selector to alert for clien accept connection request arrives ");
 
+        // use references to runtime datastructures in this class
+        idleChannelMap = RuntimeData.getIdleChannelMap();
+        requestProcessingThreadPool = RuntimeData.getRequestProcessingThreadPool();
+        requestQueue = RuntimeData.getRequestQueue();
+        responseMap = RuntimeData.getResponseMap();
+        requestsTimestampQueue = RuntimeData.getRequestsTimestampQueue();
+        
         int channelTimeout = conf.getIdleChannelTimeout(); 
         while (true) {
             // close idle channels if timeout is reached
@@ -356,10 +445,7 @@ public class Main {
             Thread.sleep(conf.getEventLoopDelay()); 
         }
     }
-    
-    private static void startMonitoringAgent(){
-        new AmoebaMonitoringAgent();
-    }
+   
 
     /**
      * accept the client connection and make the channel generate alerts when the data is ready to be read
@@ -396,6 +482,7 @@ public class Main {
                 // remote socket shutdown was clean
                 socketChannel.close();
                 key.cancel();
+                openSocketsCount--;
                 return;
             }
 
@@ -550,69 +637,27 @@ public class Main {
             return;
         }
     }
-    
-    public static CustomThreadPoolExecutor getRequestProcessingThreadPool(){
-        return requestProcessingThreadPool;
-    }
 
-    public static ArrayBlockingQueue<RequestBean> getRequestQueue() {
-        return requestQueue;
-    }
-    
-    public static ArrayBlockingQueue<Runnable> getThreadPoolQueue() {
-        return threadPoolQueue;
-    }
-    
-    public static ConcurrentHashMap<Long, ResponseBean> getResponseMap() {
-        return responseMap;
-    }
-    
-    public static ConcurrentHashMap<String, LRUResourceCache> getCacheMap(){
-        return cacheMap;
-    }
-    
-    /**
-     * Creates/retrieves LRU cache to hold resources (image, javascript, css files etc)<br/>
-     * Each web application has its own cache
-     * 
-     * @param contextName
-     * @return 
-     */
-    public static LRUResourceCache getCache(String contextName) {
-        LRUResourceCache lruCache = null;
-        if (cacheMap.containsKey(contextName)) {
-            lruCache = (LRUResourceCache) cacheMap.get(contextName);
-        } else {
-            lruCache = new LRUResourceCache(conf.getInitialCacheSize(), conf.getCacheLoadFactor(), conf.getCacheCapacity());
-            cacheMap.put(contextName, lruCache);
-        }
-        return lruCache;
-    }
-    
-    public static Configuration getConf(){
-        return conf;
-    }
-    
     public static int getOpenSocketCount(){
         return openSocketsCount;
     }
     
-    private static Properties props;
+    private static Properties amoebaProps;
     private static ConsoleHandler console;
     private static FileHandler logFile;
     private static FileHandler accessLog;
     private static Selector selector;
     private static ServerSocketChannel serverSocketChannel;
     private static File logDir;
+    private static SimpleDateFormat sdf;
+    private static Logger logger;
+    private static int openSocketsCount;
     private static Configuration conf;
-    private static CustomThreadPoolExecutor requestProcessingThreadPool;
-    private static ArrayBlockingQueue<Runnable> threadPoolQueue;
+    
+    // Runtime Data structure references
+    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
+    private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
     private static ArrayBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<Long, ResponseBean> responseMap;
     private static ArrayBlockingQueue<Long> requestsTimestampQueue;
-    private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
-    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
-    private static int openSocketsCount;
-    private static SimpleDateFormat sdf;
-    private static Logger logger;
 }

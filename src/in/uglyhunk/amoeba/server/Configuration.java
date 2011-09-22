@@ -13,6 +13,15 @@ import java.util.logging.Logger;
  * @author rvengala
  */
 public class Configuration {
+    
+    private Configuration(){}
+    
+    public static Configuration getInstance(){
+        if(conf == null){
+            conf = new Configuration();
+        }
+        return conf;
+    }
 
     /**
      * @return simpleDateFormat instance
@@ -33,6 +42,13 @@ public class Configuration {
      */
     public static String getConfFile() {
         return CONF_FILE;
+    }
+    
+    /**
+     * @return the CONF_FILE
+     */
+    public static String getContextConfFile() {
+        return CONTEXT_CONF;
     }
 
     /**
@@ -346,8 +362,8 @@ public class Configuration {
     /**
      * @return the CLASSES
      */
-    public static String getClasses() {
-        return CLASSES;
+    public static String getDynamicClassTag() {
+        return DYN_CLASS_TAG;
     }
 
     /**
@@ -412,12 +428,15 @@ public class Configuration {
     private static final float idleChannelsMapLoadFactor = 0.75F;
     // classes dynamic requests are kept in CLASSES folder
     // inside each CONTEXT folder
-    private static final String CLASSES = "CLASSES"; 
+    private static final String DYN_CLASS_TAG = "CLASSES"; 
     private static final String DEFAULT_CONTEXT = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
     private static final String SERVER_HEADER = "Amoeba 0.1.0";
     private static final String CONF_FILE = "amoeba.conf";
+    private static final String CONTEXT_CONF = "context.conf";
     private static final long EVENT_LOOP_DELAY = 30; // milli seconds
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
+    
+    private static Configuration conf;
 }

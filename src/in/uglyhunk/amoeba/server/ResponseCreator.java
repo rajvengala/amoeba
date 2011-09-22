@@ -10,15 +10,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
 import javax.xml.bind.DatatypeConverter;
+import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
+import in.uglyhunk.amoeba.dyn.DynamicRequest;
+import java.util.HashMap;
 
 /**
  *
@@ -33,7 +35,7 @@ public class ResponseCreator{
         response.setSelectionKey(request.getSelectionKey());
     }
 
-    public ResponseBean process() throws NoSuchAlgorithmException, FileNotFoundException, IOException, UnsupportedEncodingException {
+    public ResponseBean process() throws Exception {
             // If virtual host is set to true in njws.conf
             // append host string value from the http request header
             // to the document root and then append the requested
@@ -42,6 +44,11 @@ public class ResponseCreator{
             // If virtual host is set to false, append "default" and then
             // append resourcePath name to the document root for absolute path
             resourcePath = new StringBuilder();
+            
+            // resource will be in one of the following forms
+            // 1. /
+            // 2. /image.gif
+            // 3. /CLASSES/getStockQuote
             String resource = request.getResource();
             if(resource.equals("/"))
                 resource = "/index.html";
@@ -52,11 +59,22 @@ public class ResponseCreator{
                 resourceType = "html";
             
             String documentRoot = conf.getDocumentRoot();
+            // if virtual host is enabled
+            // context name is hostname
+            // else context name is default
             if(conf.isVirtualHost()) 
                 contextName = request.getHost();
             else
                 contextName = Configuration.getDefaultContext();
             
+            // resourcePath will be in one of the follows formats
+            // if virtual host is disabled
+            // 1. %DOC_ROOT%/default/CLASSES/getStockQuote
+            // 2. %DOC_ROOT%/default/CLASSES/image.gif
+            
+            // if virtual host is enabled
+            // 3. %DOC_ROOT%/hostname/CLASSES/getStockQuote
+            // 4. %DOC_ROOT%/hostname/CLASSES/image.gif
             resourcePath.append(documentRoot).append(File.separator).append(contextName).append(resource);
             response.setAbsoluteResource(resourcePath.toString());
 
@@ -72,15 +90,35 @@ public class ResponseCreator{
             return response;
     }
 
-    private void prepareResponseBody(String resource) throws NoSuchAlgorithmException, FileNotFoundException, IOException{
+    private void prepareResponseBody(String resource) throws Exception{
        try {
-            // if the resourcePath absolute path contains "dyn" string,
+            // if the resourcePath absolute path contains "CLASSES" string,
             // pass them to user classes in CLASSES sub-directory
-            if(resourcePath.toString().contains(Configuration.getClasses())) {
-                // have a properties file in each webapp folder
-                // and load appropriate class
-                // class loaded should be different for each
-                // webapp
+           
+            // resourcePath format - <DOC_ROOT>/<CONTEXT>/CLASSES/getStockQuote
+            if(resourcePath.toString().contains(Configuration.getDynamicClassTag())) {
+                // check if the class loader exists for this context
+                // if exists, check the class is already loaded
+                // if loaded, create a new instance of the class
+                // if the loaded does not exist, create new loader
+                // save it in a map, load the class file from the disk
+                // and define it to the JVM
+                String className = resourcePath.toString().split("CLASSES\\.")[1];
+                AmoebaClassLoader classLoader = null;
+                if(classLoaderMap.contains(className)){
+                    // classloader instance already created for this context
+                    // use that to load the dynamic class
+                    classLoader = classLoaderMap.get(contextName);
+                    
+                } else {
+                    // no classloader for this context
+                    // create a new class loader and put it in class loader map
+                    classLoader = new AmoebaClassLoader(contextName);
+                    classLoaderMap.put(contextName, classLoader);
+                }
+                
+                DynamicRequest dynamicReq = (DynamicRequest) classLoader.loadClass(className).newInstance();
+                dynamicReq.process(request, response);
             } else {
                 // if the request is for a static resourcePath
                 // get the resource info from the file system
@@ -114,7 +152,7 @@ public class ResponseCreator{
                 LRUResourceCache lruCache = null;
                 ByteBuffer responseBodyByteBuffer = null;
                 try{
-                    lruCache = Main.getCache(contextName);
+                    lruCache = LRUResourceCache.getCache(contextName);
                     lruCache.getCacheLock().lock();
                     
                     if(lruCache.containsKey(eTag)){
@@ -178,7 +216,7 @@ public class ResponseCreator{
         return;
     }
 
-    private void prepareResponseHeaders() throws UnsupportedEncodingException {
+    private void prepareResponseHeaders() throws Exception {
         String statusLine = statusLine(respCode);
         response.setStatusCode(respCode.split("_")[1]);
         response.setStatusLine(statusLine);
@@ -205,7 +243,7 @@ public class ResponseCreator{
         return;
     }
 
-    private String calculateETag() throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    private String calculateETag() throws Exception {
         String eTagSource = resourcePath.toString() + lastModified;
         byte[] eTagSouceBytes = eTagSource.getBytes("UTF-8");
         MessageDigest md5 = MessageDigest.getInstance("MD5");
@@ -313,8 +351,11 @@ public class ResponseCreator{
     private int resourceSize;
     private String eTag;
     private String contextName;
-    private static Configuration conf = Main.getConf();
-        
+    
+    private static Configuration conf = Configuration.getInstance();
+    private static ConcurrentHashMap<String, AmoebaClassLoader> classLoaderMap = RuntimeData.getClassLoaderMap();
+    private static ConcurrentHashMap<String, HashMap<String, String>> contextMap = RuntimeData.getContextMap();
+            
     // multiple threads change the following volatile variables
     private static volatile long resourcesReadFromDisk;
     private static volatile long resourcesReadFromCache;

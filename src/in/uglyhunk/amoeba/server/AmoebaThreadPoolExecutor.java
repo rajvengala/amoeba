@@ -14,9 +14,9 @@ import java.util.logging.Level;
  *
  * @author uglyhunk
  */
-public class CustomThreadPoolExecutor extends ThreadPoolExecutor{
+public class AmoebaThreadPoolExecutor extends ThreadPoolExecutor{
     
-    public CustomThreadPoolExecutor(int coreRequestProcessingThreads,
+    public AmoebaThreadPoolExecutor(int coreRequestProcessingThreads,
                                     int maxRequestProcessingThreads,
                                     long ttlForNonCoreThreads,
                                     TimeUnit units,

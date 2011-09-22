@@ -25,7 +25,7 @@ public class RequestProcessor implements Runnable {
 
     public void run() {
         try {
-            RequestBean reqBean = Main.getRequestQueue().take();
+            RequestBean reqBean = RuntimeData.getRequestQueue().take();
             byte[] readBufferArray = reqBean.getRawRequestBytes();
             long timestamp = reqBean.getTimestamp();
             SelectionKey key = reqBean.getSelectionKey();
@@ -38,7 +38,7 @@ public class RequestProcessor implements Runnable {
             parseRequest(reqBean, rawRequest);
                                     
             ResponseBean response = new ResponseCreator(reqBean).process();
-            Main.getResponseMap().put(timestamp, response);
+            RuntimeData.getResponseMap().put(timestamp, response);
                  
             key.interestOps(SelectionKey.OP_WRITE);
             key.selector().wakeup();
@@ -53,6 +53,8 @@ public class RequestProcessor implements Runnable {
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(pe), pe);
         } catch(NoSuchAlgorithmException nsae){
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(nsae), nsae);
+        } catch(Exception e){
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
         }
     }
 

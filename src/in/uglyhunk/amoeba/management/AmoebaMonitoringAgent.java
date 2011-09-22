@@ -24,12 +24,12 @@ public class AmoebaMonitoringAgent {
 
         // Unique identification of MBeans
         AmoebaMonitorMBean njasMbean = new AmoebaMonitor();
-        ObjectName njasObjectName = null;
+        ObjectName amoebaObjectName = null;
 
         try {
              // Uniquely identify the MBeans and register them with the platform MBeanServer 
-             njasObjectName = new ObjectName("in.uglyhunk.njas.management:name=njas");
-             mbs.registerMBean(njasMbean, njasObjectName);
+             amoebaObjectName = new ObjectName("in.uglyhunk.amoeba.management:name=amoeba");
+             mbs.registerMBean(njasMbean, amoebaObjectName);
         } catch(Exception e) {
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
         }
