@@ -5,6 +5,7 @@
 package in.uglyhunk.amoeba.server;
 
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
+import in.uglyhunk.amoeba.dyn.DynamicRequest;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -144,6 +145,21 @@ public class RuntimeData {
         contextMap = aContextMap;
     }
     
+    
+    /**
+     * @return the dymaicClassInstanceMap
+     */
+    public static ConcurrentHashMap<String, HashMap<String, DynamicRequest>> getContextDymaicInstanceMap() {
+        return contextDymaicInstanceMap;
+    }
+
+    /**
+     * @param aDymaicClassInstanceMap the dymaicClassInstanceMap to set
+     */
+    public static void setContextDynamicInstanceMap(ConcurrentHashMap<String, HashMap<String, DynamicRequest>> aContextDymaicInstanceMap) {
+        contextDymaicInstanceMap = aContextDymaicInstanceMap;
+    }
+    
         
     /*
      * Instance of a class that extends ThreadPoolExecutor
@@ -193,8 +209,16 @@ public class RuntimeData {
     private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
     
     /*
-     * Maps the context another map data structure(referred map).
-     * Referred HashMap maps class name to it's fully qualified name
+     * Maps the context to another map data structure(referred map).
+     * Referred HashMap is the runtime state of context.conf file inside
+     * each context directory
      */
     private static ConcurrentHashMap<String, HashMap<String, String>> contextMap;
+    
+    /*
+     * Maps the context name to another map data structure(referred map)
+     * Referred map maps the className to its instance.
+     */
+    private static ConcurrentHashMap<String, HashMap<String, DynamicRequest>> contextDymaicInstanceMap;
+
 }

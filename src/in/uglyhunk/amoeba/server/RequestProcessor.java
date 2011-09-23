@@ -12,6 +12,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 
@@ -25,7 +27,7 @@ public class RequestProcessor implements Runnable {
 
     public void run() {
         try {
-            RequestBean reqBean = RuntimeData.getRequestQueue().take();
+            RequestBean reqBean = requestQueue.take();
             byte[] readBufferArray = reqBean.getRawRequestBytes();
             long timestamp = reqBean.getTimestamp();
             SelectionKey key = reqBean.getSelectionKey();
@@ -38,7 +40,7 @@ public class RequestProcessor implements Runnable {
             parseRequest(reqBean, rawRequest);
                                     
             ResponseBean response = new ResponseCreator(reqBean).process();
-            RuntimeData.getResponseMap().put(timestamp, response);
+            responseMap.put(timestamp, response);
                  
             key.interestOps(SelectionKey.OP_WRITE);
             key.selector().wakeup();
@@ -208,6 +210,8 @@ public class RequestProcessor implements Runnable {
          }
          return RequestHeadersEnum.NONE;
     }
-    
-    private static Charset charset = Charset.forName("UTF-8");
+  
+    private static Charset charset = Utilities.getCharset();
+    private static ArrayBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
+    private static ConcurrentHashMap<Long, ResponseBean> responseMap = RuntimeData.getResponseMap();
 }

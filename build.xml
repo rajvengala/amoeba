@@ -10,13 +10,13 @@
 <project name="amoeba" default="default" basedir=".">
     <description>Builds, tests, and runs the project amoeba</description>
     <import file="nbproject/build-impl.xml"/>
-
-    <import file="nbproject/management-build-impl.xml"/>    
+    <import file="nbproject/management-build-impl.xml"/>
+    
     <target name="-pre-jar">
         <propertyfile file="${src.dir}/version.txt">
-            <entry key="VERSION" default="0.1.0" />
             <entry key="BUILD-NUM" value="1" type="int" operation="+"/>
-            <entry key="BUILD-DATE" type="date" value="now" pattern="dd/MMM/yyyy HH:mm:ss" />
+            <entry key="BUILD-DATE" type="date" value="now" pattern="dd-MMM-yyyy HH-mm-ss" />
+            <entry key="VERSION" value="0.1.0" />
         </propertyfile> 
     </target>
     

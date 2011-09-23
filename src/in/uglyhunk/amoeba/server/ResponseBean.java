@@ -124,8 +124,16 @@ public class ResponseBean {
     /**
      * @param body the body to set
      */
-    public void setBody(ByteBuffer body) {
+    void setBody(ByteBuffer body) {
         this.body = body;
+    }
+    
+    public void setRespBody(String respBody){
+        this.respBody = respBody;
+    }
+    
+    String getRespBody(){
+        return respBody;
     }
 
      /**
@@ -215,10 +223,12 @@ public class ResponseBean {
     private String connection;
     private String contentEncoding;
     private ByteBuffer body;
+    private String respBody;
     private long lastModified;
     private String eTag;
     private SocketChannel socketChannel;
     private String absoluteResource;
     private SelectionKey selectionKey;
     private String responseCacheTag;
+    
 }

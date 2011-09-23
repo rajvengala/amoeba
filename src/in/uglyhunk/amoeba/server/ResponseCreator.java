@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.xml.bind.DatatypeConverter;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 
 /**
@@ -92,37 +93,85 @@ public class ResponseCreator{
 
     private void prepareResponseBody(String resource) throws Exception{
        try {
-            // if the resourcePath absolute path contains "CLASSES" string,
+            ByteBuffer responseBodyByteBuffer = null;
+            String dynClassTag = Configuration.getDynamicClassTag();
+            
+            // ResourcePath format - <DOC_ROOT>/<CONTEXT>/CLASSES/getStockQuote
+            // If the resourcePath absolute path contains "CLASSES" string,
             // pass them to user classes in CLASSES sub-directory
-           
-            // resourcePath format - <DOC_ROOT>/<CONTEXT>/CLASSES/getStockQuote
-           String dynClassTag = Configuration.getDynamicClassTag();
             if(resourcePath.toString().contains(dynClassTag)) {
-                // check if the class loader exists for this context
-                // if exists, if not, create new loader and
-                // save it in a map and load the class file 
+                DynamicRequest dynamicReq = null;
+                // Extracts target class name from the resourcePath
+                // eg: /var/www/default/CLASSES/getStockQuote => getStockQuote
                 String className = resourcePath.toString().split(dynClassTag + "/")[1];
-                AmoebaClassLoader classLoader = null;
-                if(classLoaderMap.contains(className)){
-                    // classloader instance already created for this context
-                    // use that to load the dynamic class
-                    classLoader = classLoaderMap.get(contextName);
-                    
-                } else {
-                    // no classloader for this context
-                    // create a new class loader and put it in class loader map
-                    String absoluteContextPath = resourcePath.toString().split("/" + dynClassTag)[0];
-                    classLoader = new AmoebaClassLoader(absoluteContextPath);
-                    classLoaderMap.put(contextName, classLoader);
+                
+                // Check if the instance for this class is already created.
+                // If so, use that instance for all requests
+                if(contextDynamicInstanceMap.contains(contextName)){
+                    HashMap<String, DynamicRequest> dynamicInstanceMap = contextDynamicInstanceMap.get(contextName);
+                    if(dynamicInstanceMap.containsKey(className)){
+                        dynamicReq = dynamicInstanceMap.get(className);
+                    }
                 }
                 
-                // retrieve full class name from class name
-                // eg: main => in.uglyhunk.amoeba.server.Main
-                HashMap<String, String> classMap = contextMap.get(contextName);
-                String fullClassName = classMap.get(className);
-                                
-                DynamicRequest dynamicReq = (DynamicRequest) classLoader.loadClass(fullClassName).newInstance();
+                // There is no previous instance of this class
+                if(dynamicReq == null){
+                    // Load it from the filesystem using custom class loader
+                    // Check if the class loader exists for this context.
+                    // If exists, use that loader to load the dynamic class.
+                    // If not, create new loader, save it in a map and load the class file 
+                    AmoebaClassLoader classLoader = null;
+                    if(classLoaderMap.contains(className)){
+                        // Classloader instance already created for this context. 
+                        // Use this to load the dynamic class
+                        classLoader = classLoaderMap.get(contextName);
+                    } else {
+                        // No classloader exists for this context.
+                        // Create a new class loader and put it in a classloader map
+                        String absoluteContextPath = resourcePath.toString().split("/" + dynClassTag)[0];
+                        classLoader = new AmoebaClassLoader(absoluteContextPath);
+                        classLoaderMap.put(contextName, classLoader);
+                    }
+
+                    // Retrieve full class name from class name
+                    // eg: main => in.uglyhunk.amoeba.server.Main
+                    HashMap<String, String> classMap = contextMap.get(contextName);
+                    String fullClassName = classMap.get(className);
+
+                    dynamicReq = (DynamicRequest) classLoader.loadClass(fullClassName).newInstance();
+                    
+                    // save the instance in a map for later requests for the same class
+                    HashMap<String, DynamicRequest> dynamicInstanceMap = null;
+                    if(contextDynamicInstanceMap.contains(contextName)){
+                        dynamicInstanceMap = contextDynamicInstanceMap.get(contextName);
+                    } else {
+                        dynamicInstanceMap = new HashMap<String, DynamicRequest>();
+                    }
+                    dynamicInstanceMap.put(className, dynamicReq);
+                    contextDynamicInstanceMap.put(contextName, dynamicInstanceMap);
+                }
+                
+                // Let the dynamic class process the request
                 dynamicReq.process(request, response);
+                
+                String rawBody = response.getRespBody();
+                byte rawBodyBytes[] = rawBody.getBytes(charset);
+                responseBodyByteBuffer = ByteBuffer.allocate(rawBodyBytes.length);
+                responseBodyByteBuffer.put(rawBodyBytes);
+                responseBodyByteBuffer.flip();
+                
+                respContentLength = responseBodyByteBuffer.limit();
+                if(response.getContentType() == null){
+                    response.setContentType("text/html; charset=UTF-8");
+                }
+                if(response.getStatusCode() != null){
+                    String statusLine = statusLine("_" + respCode);
+                    response.setStatusLine(statusLine);
+                } else {
+                    respCode = "_200";
+                }
+                response.setresponseCacheTag("[Dynamic]");
+                
             } else {
                 // if the request is for a static resourcePath
                 // get the resource info from the file system
@@ -148,13 +197,13 @@ public class ResponseCreator{
                     respCode = "_304";
                     respContentLength = 0;
                     response.setBody(null);
+                    response.setresponseCacheTag("[Conditional]");
                     return;
                 }
                                 
                 // client does not have this resource
                 // read from the cache, if exists
                 LRUResourceCache lruCache = null;
-                ByteBuffer responseBodyByteBuffer = null;
                 try{
                     lruCache = LRUResourceCache.getCache(contextName);
                     lruCache.getCacheLock().lock();
@@ -168,6 +217,7 @@ public class ResponseCreator{
                         responseBodyByteBuffer.put(cachedResource);
                         responseBodyByteBuffer.flip();
                         respCode = "_200";
+                        respContentLength = resourceSize;
                         response.setresponseCacheTag("[Cache]");
                         resourcesReadFromCache++;
                     } else {
@@ -181,6 +231,7 @@ public class ResponseCreator{
                         fc.read(responseBodyByteBuffer);
                         responseBodyByteBuffer.flip();
                         respCode = "_200";
+                        respContentLength = resourceSize;
                         fis.close();
                         fc.close();
                         
@@ -194,17 +245,15 @@ public class ResponseCreator{
                 } finally{
                     lruCache.getCacheLock().unlock();
                 }
-                                
-                // if compression is enabled and if the resource
-                // is compressable, do so now
-                if(conf.getCompression() && isCompressable(resourceType)){
-                    compress(responseBodyByteBuffer.array());
-                } else {
-                    // either compression is disabled or resource is not compressable
-                    respContentLength = resourceSize;
-                    response.setBody(responseBodyByteBuffer);
-                }
-           }
+            }               
+            
+            // if compression is enabled and if the resource is compressable, do so now
+            if(conf.getCompression() && isCompressable(resourceType)){
+                compress(responseBodyByteBuffer.array());
+            } else {
+                // either compression is disabled or resource is not compressable
+                response.setBody(responseBodyByteBuffer);
+            }
         } catch (FileNotFoundException fnfe) {
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             respCode = "_404";
@@ -221,9 +270,13 @@ public class ResponseCreator{
     }
 
     private void prepareResponseHeaders() throws Exception {
-        String statusLine = statusLine(respCode);
-        response.setStatusCode(respCode.split("_")[1]);
-        response.setStatusLine(statusLine);
+        // if status code is not set by dynamic request handler,
+        // set it here
+        if(response.getStatusLine() == null){
+            String statusLine = statusLine(respCode);
+            response.setStatusCode(respCode.split("_")[1]);
+            response.setStatusLine(statusLine);
+        }
         
         // set last modified value and etag value
         // if resource is cacheable
@@ -232,8 +285,12 @@ public class ResponseCreator{
             response.setETag(eTag);
         }
         
-        String contentType = contentType(resourceType);
-        response.setContentType(contentType);
+        // if content type is not set by dynamic request handler,
+        // set it here
+        if(response.getContentType() == null){
+            String contentType = contentType(resourceType);
+            response.setContentType(contentType);
+        }
         
         if(respContentLength != 0){
             response.setContentLength(respContentLength + "");
@@ -249,7 +306,7 @@ public class ResponseCreator{
 
     private String calculateETag() throws Exception {
         String eTagSource = resourcePath.toString() + lastModified;
-        byte[] eTagSouceBytes = eTagSource.getBytes("UTF-8");
+        byte[] eTagSouceBytes = eTagSource.getBytes(charset);
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         byte[] digest = md5.digest(eTagSouceBytes);
         return DatatypeConverter.printBase64Binary(digest);
@@ -317,6 +374,8 @@ public class ResponseCreator{
             compress(responseBodyByteBuffer.array());
         } else {
             respContentLength = fileLength;
+            response.setresponseCacheTag("[Disk]");
+            resourcesReadFromDisk++;
             response.setBody(responseBodyByteBuffer);
         }
         return;
@@ -359,7 +418,10 @@ public class ResponseCreator{
     private static Configuration conf = Configuration.getInstance();
     private static ConcurrentHashMap<String, AmoebaClassLoader> classLoaderMap = RuntimeData.getClassLoaderMap();
     private static ConcurrentHashMap<String, HashMap<String, String>> contextMap = RuntimeData.getContextMap();
-            
+    private static ConcurrentHashMap<String, HashMap<String, DynamicRequest>> contextDynamicInstanceMap 
+                                                                                = RuntimeData.getContextDymaicInstanceMap();
+   
+    private static final String charset = "UTF-8";
     // multiple threads change the following volatile variables
     private static volatile long resourcesReadFromDisk;
     private static volatile long resourcesReadFromCache;

@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
+import in.uglyhunk.amoeba.dyn.DynamicRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Filter;
@@ -271,6 +272,7 @@ public class Main {
                 FileReader reader = new FileReader(contextConfPath);
                 contextProps.load(reader);
 
+                // Following Hashmap is the runtime state of context.conf
                 HashMap<String, String> dynamicClassesMap = new HashMap<String, String>();
                 Iterator<Entry<Object, Object>> itr = contextProps.entrySet().iterator();
                 while(itr.hasNext()){
@@ -310,6 +312,7 @@ public class Main {
         RuntimeData.setIdleChannelMap(new LinkedHashMap<SelectionKey, Long>(Configuration.getInitialIdleChannels(),
                                                                Configuration.getIdleChannelsMapLoadFactor()));
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
+        RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
     }
 
     
