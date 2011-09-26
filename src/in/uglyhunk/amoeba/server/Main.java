@@ -32,6 +32,7 @@ import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Filter;
 
 /**
@@ -121,14 +122,11 @@ public class Main {
         // read buffer properties
         conf.setReadBufferCapacity(Integer.parseInt(amoebaProps.getProperty("readBufferCapacity")) * 1024);
         
-        // request processing threads
-        conf.setMinRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("minRequestProcessingThreads")));
-        conf.setMaxRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("maxRequestProcessingThreads")));
-        conf.setTtlForNonCoreThreads(Integer.parseInt(amoebaProps.getProperty("ttlForNonCoreThreads")));
-        
-        // tasks queue
-        conf.setThreadPoolQueueLength(Integer.parseInt(amoebaProps.getProperty("threadPoolQueueLength")));
-        
+        // request processing threads, core and max set to same as LinkedBlockingQueue when used 
+        // in threadPool does not have take max threads into account.
+        conf.setMinRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("requestProcessingThreads")));
+        conf.setMaxRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("requestProcessingThreads")));
+                
         // request queue
         int reqQueueLength = Integer.parseInt(amoebaProps.getProperty("requestQueueLength"));
         conf.setRequestQueueLength(reqQueueLength);
@@ -284,10 +282,8 @@ public class Main {
                 RuntimeData.getContextMap().put(contexts.get(index), dynamicClassesMap);
             } catch (FileNotFoundException fnfe) {
                 logger.log(Level.WARNING, "Configuration file, context.conf, is not found for the context {0}", contexts.get(index));
-                //logger.log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             } catch (IOException ioe) {
                 logger.log(Level.WARNING, "Error while parsing configuration file, context.conf, for the context {0}", contexts.get(index));
-                //logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
             }
             index++;
         }
@@ -329,7 +325,7 @@ public class Main {
     private static void setupWorkerThreads() {
         // each http request from the request queue is prepared as task
         // and submitted to a pool of threads
-        RuntimeData.setThreadPoolQueue(new ArrayBlockingQueue<Runnable>(conf.getThreadPoolQueueLength()));
+        RuntimeData.setThreadPoolQueue(new LinkedBlockingQueue<Runnable>());
         RuntimeData.setRequestProcessingThreadPool(new AmoebaThreadPoolExecutor(
                                         conf.getMinRequestProcessingThreads(),
                                         conf.getMaxRequestProcessingThreads(),
@@ -347,12 +343,12 @@ public class Main {
 
         logger.log(Level.INFO, "Request buffer capacity - {0} KB", conf.getReadBufferCapacity() / 1024);
 
-        logger.log(Level.INFO, "Min. request processing threads in the thread pool - {0}", conf.getMinRequestProcessingThreads());
-        logger.log(Level.INFO, "Max. request processing threads in the thread pool - {0}", conf.getMaxRequestProcessingThreads());
-        logger.log(Level.INFO, "Time to live for non-core request processing threads - {0} seconds", conf.getTtlForNonCoreThreads());
+        logger.log(Level.INFO, "Request processing threads in the thread pool - {0}", conf.getMinRequestProcessingThreads());
+        //logger.log(Level.INFO, "Max. request processing threads in the thread pool - {0}", conf.getMaxRequestProcessingThreads());
+        //logger.log(Level.INFO, "Time to live for non-core request processing threads - {0} seconds", conf.getTtlForNonCoreThreads());
 
         logger.log(Level.INFO, "Queue length of the request beans - {0}", conf.getRequestQueueLength());
-        logger.log(Level.INFO, "Queue length of the request processing thread pool - {0}", conf.getThreadPoolQueueLength());
+        //logger.log(Level.INFO, "Queue length of the request processing thread pool - {0}", conf.getThreadPoolQueueLength());
 
         logger.log(Level.INFO, "DocumentRoot - {0}", conf.getDocumentRoot());
         logger.log(Level.INFO, "VirtualHost - {0}", conf.isVirtualHost());
@@ -409,19 +405,21 @@ public class Main {
         int channelTimeout = conf.getIdleChannelTimeout(); 
         while (true) {
             // close idle channels if timeout is reached
-            Iterator<Entry<SelectionKey, Long>> idleChannelSetItr = idleChannelMap.entrySet().iterator();
-            while(idleChannelSetItr.hasNext()){
-                Entry<SelectionKey, Long> idleChannelEntry = idleChannelSetItr.next();
-                long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - idleChannelEntry.getValue());
-                if(idleTime >= channelTimeout){
-                    SelectionKey key = idleChannelEntry.getKey();
-                    SocketChannel socketChannel = (SocketChannel)key.channel();
-                    socketChannel.close();
-                    key.cancel();
-                    openSocketsCount--;
-                    idleChannelSetItr.remove();
-                } else {
-                    break;
+            synchronized(idleChannelMap){
+                Iterator<Entry<SelectionKey, Long>> idleChannelSetItr = idleChannelMap.entrySet().iterator();
+                while(idleChannelSetItr.hasNext()){
+                    Entry<SelectionKey, Long> idleChannelEntry = idleChannelSetItr.next();
+                    long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - idleChannelEntry.getValue());
+                    if(idleTime >= channelTimeout){
+                        SelectionKey key = idleChannelEntry.getKey();
+                        SocketChannel socketChannel = (SocketChannel)key.channel();
+                        socketChannel.close();
+                        key.cancel();
+                        openSocketsCount--;
+                        idleChannelSetItr.remove();
+                    } else {
+                        break;
+                    }
                 }
             }
  

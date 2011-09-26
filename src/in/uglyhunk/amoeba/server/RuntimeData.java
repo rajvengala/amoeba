@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  *
@@ -36,14 +37,14 @@ public class RuntimeData {
     /**
      * @return the threadPoolQueue
      */
-    public static ArrayBlockingQueue<Runnable> getThreadPoolQueue() {
+    public static LinkedBlockingQueue<Runnable> getThreadPoolQueue() {
         return threadPoolQueue;
     }
 
     /**
      * @param aThreadPoolQueue the threadPoolQueue to set
      */
-    public static void setThreadPoolQueue(ArrayBlockingQueue<Runnable> aThreadPoolQueue) {
+    public static void setThreadPoolQueue(LinkedBlockingQueue<Runnable> aThreadPoolQueue) {
         threadPoolQueue = aThreadPoolQueue;
     }
 
@@ -167,11 +168,11 @@ public class RuntimeData {
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
     
     /*
-     * Queue to the AmoebaThreadPoolExecutor. When the maximum
+     * Queue to the AmoebaThreadPoolExecutor. When core
      * threads of the pool are active, incoming requests are
      * queued here.
      */
-    private static ArrayBlockingQueue<Runnable> threadPoolQueue;
+    private static LinkedBlockingQueue<Runnable> threadPoolQueue;
     
     /*
      * All the http requests are first queue in RequestQueue.

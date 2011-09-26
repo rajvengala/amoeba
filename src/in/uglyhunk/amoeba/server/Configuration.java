@@ -136,20 +136,6 @@ public class Configuration {
     }
 
     /**
-     * @return the threadPoolQueueLength
-     */
-    public int getThreadPoolQueueLength() {
-        return threadPoolQueueLength;
-    }
-
-    /**
-     * @param aTasksQueueLength the threadPoolQueueLength to set
-     */
-    public void setThreadPoolQueueLength(int threadPoolQueueLength) {
-        this.threadPoolQueueLength = threadPoolQueueLength;
-    }
-
-    /**
      * @return the minRequestProcessingThreads
      */
     public int getMinRequestProcessingThreads() {
@@ -210,13 +196,6 @@ public class Configuration {
      */
     public long getTtlForNonCoreThreads() {
         return ttlForNonCoreThreads;
-    }
-
-    /**
-     * @param aTtlForNonCoreThreads the ttlForNonCoreThreads to set
-     */
-    public void setTtlForNonCoreThreads(long ttlForNonCoreThreads) {
-        this.ttlForNonCoreThreads = ttlForNonCoreThreads;
     }
 
     /**
@@ -405,12 +384,12 @@ public class Configuration {
     private int readBufferCapacity; // in bytes
     private String hostname;
     private int port;
-    private int threadPoolQueueLength;
+    //private int threadPoolQueueLength;
     private int minRequestProcessingThreads;
     private int maxRequestProcessingThreads;
     private int requestQueueLength;
     private int requestsTimestampQueueLength;
-    private long ttlForNonCoreThreads;
+    
     private int errLogFileSize; // KB
     private int errLogFileCount;// max log file count
     private String documentRoot;
@@ -426,6 +405,10 @@ public class Configuration {
     private static final int initialIdleChannels = 200;
     private static final int totalIdleChannels = 1000;
     private static final float idleChannelsMapLoadFactor = 0.75F;
+    
+    // This does not have any bearing on the thread pool
+    // as the core threads and max threads are equal
+    private static final long ttlForNonCoreThreads = 360; // seconds
     
     // classes dynamic requests are kept in CLASSES folder
     // inside each CONTEXT folder

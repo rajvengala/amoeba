@@ -4,15 +4,20 @@
  */
 package in.uglyhunk.amoeba.management;
 
+import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.server.AmoebaThreadPoolExecutor;
 import in.uglyhunk.amoeba.server.LRUResourceCache;
 import in.uglyhunk.amoeba.server.Main;
 import in.uglyhunk.amoeba.server.RequestBean;
+import in.uglyhunk.amoeba.server.ResponseBean;
 import in.uglyhunk.amoeba.server.ResponseCreator;
 import in.uglyhunk.amoeba.server.RuntimeData;
+import java.nio.channels.SelectionKey;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  *
@@ -25,6 +30,10 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
         threadPoolQueue = RuntimeData.getThreadPoolQueue();
         requestQueue = RuntimeData.getRequestQueue();
         cacheMap = RuntimeData.getCacheMap();
+        responseMap = RuntimeData.getResponseMap();
+        requestsTimestampQueue = RuntimeData.getRequestsTimestampQueue();
+        classLoaderMap = RuntimeData.getClassLoaderMap();
+        idleChannelMap = RuntimeData.getIdleChannelMap();
     }
 
     public int getRequestProcessingThreadPoolSize() {
@@ -33,14 +42,6 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
 
     public int getRequestProcessingThreadPoolActiveCount() {
         return requestProcessingThreadPool.getActiveCount();
-    }
-
-    public long getRequestProcessingThreadPoolCompletedTaskCount() {
-        return requestProcessingThreadPool.getCompletedTaskCount();
-    }
-
-    public int getRequestProcessingThreadPoolLargestPoolSize() {
-        return requestProcessingThreadPool.getLargestPoolSize();
     }
 
     public int getRequestProcessingThreadPoolQueueLength() {
@@ -73,10 +74,29 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
         return Main.getOpenSocketCount();
     }
     
+    public int getResponseMapSize() {
+       return responseMap.size();
+    }
+
+    public int getRequestTimestampQueueLength() {
+        return requestsTimestampQueue.size();
+    }
+    
+    public int getClassLoaderCount() {
+        return classLoaderMap.size();
+    }
+
+    public int getIdleChannelMapSize() {
+        return idleChannelMap.size();
+    }
+    
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
-    private static ArrayBlockingQueue<Runnable> threadPoolQueue;
+    private static LinkedBlockingQueue<Runnable> threadPoolQueue;
     private static ArrayBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
-
+    private static ConcurrentHashMap<Long, ResponseBean> responseMap;
+    private static ArrayBlockingQueue<Long> requestsTimestampQueue;
+    private static ConcurrentHashMap<String, AmoebaClassLoader> classLoaderMap;
+    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
 }
 
