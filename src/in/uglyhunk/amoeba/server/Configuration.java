@@ -164,34 +164,6 @@ public class Configuration {
     }
 
     /**
-     * @return the requestQueueLength
-     */
-    public int getRequestQueueLength() {
-        return requestQueueLength;
-    }
-
-    /**
-     * @param aRequestQueueLength the requestQueueLength to set
-     */
-    public void setRequestQueueLength(int requestQueueLength) {
-        this.requestQueueLength = requestQueueLength;
-    }
-
-    /**
-     * @return the responseOrderQueueLength
-     */
-    public int getRequestsTimestampQueueLength() {
-        return requestsTimestampQueueLength;
-    }
-
-    /**
-     * @param aResponseOrderQueueLength the responseOrderQueueLength to set
-     */
-    public void setRequestsTimestampQueueLength(int requestsTimestampQueueLength) {
-        this.requestsTimestampQueueLength = requestsTimestampQueueLength;
-    }
-
-    /**
      * @return the ttlForNonCoreThreads
      */
     public long getTtlForNonCoreThreads() {
@@ -318,13 +290,6 @@ public class Configuration {
     }
 
     /**
-     * @param aCacheLoadFactor the cacheLoadFactor to set
-     */
-    public void setCacheLoadFactor(float cacheLoadFactor) {
-        this.cacheLoadFactor = cacheLoadFactor;
-    }
-
-    /**
      * @return the cacheSize
      */
     public int getCacheCapacity() {
@@ -380,16 +345,13 @@ public class Configuration {
     public void setIdleChannelTimeout(int idleChannelTimeout) {
         this.idleChannelTimeout = idleChannelTimeout;
     }
-    
+     
     private int readBufferCapacity; // in bytes
     private String hostname;
     private int port;
-    //private int threadPoolQueueLength;
     private int minRequestProcessingThreads;
     private int maxRequestProcessingThreads;
-    private int requestQueueLength;
-    private int requestsTimestampQueueLength;
-    
+      
     private int errLogFileSize; // KB
     private int errLogFileCount;// max log file count
     private String documentRoot;
@@ -397,10 +359,12 @@ public class Configuration {
     private boolean compression;
     private boolean maintenance;
     private long maxAge;
+    
     private int initialCacheSize;
-    private float cacheLoadFactor;
+    private static final float cacheLoadFactor = 0.75F;
     private int cacheCapacity;
     private String njasHome; // environment variable
+    
     private int idleChannelTimeout; // seconds
     private static final int initialIdleChannels = 200;
     private static final int totalIdleChannels = 1000;
@@ -421,6 +385,5 @@ public class Configuration {
     private static final long EVENT_LOOP_DELAY = 30; // milli seconds
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
-    
     private static Configuration conf;
 }

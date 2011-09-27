@@ -15,7 +15,6 @@ import in.uglyhunk.amoeba.server.RuntimeData;
 import java.nio.channels.SelectionKey;
 import java.util.LinkedHashMap;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -87,15 +86,19 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
     }
 
     public int getIdleChannelMapSize() {
-        return idleChannelMap.size();
+        int size=0;
+        synchronized(idleChannelMap){
+            size = idleChannelMap.size();
+        }
+        return size;
     }
     
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
     private static LinkedBlockingQueue<Runnable> threadPoolQueue;
-    private static ArrayBlockingQueue<RequestBean> requestQueue;
+    private static LinkedBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
     private static ConcurrentHashMap<Long, ResponseBean> responseMap;
-    private static ArrayBlockingQueue<Long> requestsTimestampQueue;
+    private static LinkedBlockingQueue<Long> requestsTimestampQueue;
     private static ConcurrentHashMap<String, AmoebaClassLoader> classLoaderMap;
     private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
 }

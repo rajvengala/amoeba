@@ -51,14 +51,14 @@ public class RuntimeData {
     /**
      * @return the requestQueue
      */
-    public static ArrayBlockingQueue<RequestBean> getRequestQueue() {
+    public static LinkedBlockingQueue<RequestBean> getRequestQueue() {
         return requestQueue;
     }
 
     /**
      * @param aRequestQueue the requestQueue to set
      */
-    public static void setRequestQueue(ArrayBlockingQueue<RequestBean> aRequestQueue) {
+    public static void setRequestQueue(LinkedBlockingQueue<RequestBean> aRequestQueue) {
         requestQueue = aRequestQueue;
     }
 
@@ -79,14 +79,14 @@ public class RuntimeData {
     /**
      * @return the requestsTimestampQueue
      */
-    public static ArrayBlockingQueue<Long> getRequestsTimestampQueue() {
+    public static LinkedBlockingQueue<Long> getRequestsTimestampQueue() {
         return requestsTimestampQueue;
     }
 
     /**
      * @param aRequestsTimestampQueue the requestsTimestampQueue to set
      */
-    public static void setRequestsTimestampQueue(ArrayBlockingQueue<Long> aRequestsTimestampQueue) {
+    public static void setRequestsTimestampQueue(LinkedBlockingQueue<Long> aRequestsTimestampQueue) {
         requestsTimestampQueue = aRequestsTimestampQueue;
     }
 
@@ -179,7 +179,7 @@ public class RuntimeData {
      * Thread pool executor retrieves the requestBeans from this queue
      * and processes them with optimal number of threads
      */
-    private static ArrayBlockingQueue<RequestBean> requestQueue;
+    private static LinkedBlockingQueue<RequestBean> requestQueue;
     
     /*
      * Maps the timestamp of the request with the response bean for that request
@@ -190,7 +190,7 @@ public class RuntimeData {
      * timestamp of each request will be entered into the queue and removed from
      * the queue after the response is sent to the client
      */
-    private static ArrayBlockingQueue<Long> requestsTimestampQueue;
+    private static LinkedBlockingQueue<Long> requestsTimestampQueue;
     
     /*
      * Maps context name to the LRUResourceCache object.

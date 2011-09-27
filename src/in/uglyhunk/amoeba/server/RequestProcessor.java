@@ -12,8 +12,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
 
@@ -212,6 +212,6 @@ public class RequestProcessor implements Runnable {
     }
   
     private static Charset charset = Utilities.getCharset();
-    private static ArrayBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
+    private static LinkedBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
     private static ConcurrentHashMap<Long, ResponseBean> responseMap = RuntimeData.getResponseMap();
 }

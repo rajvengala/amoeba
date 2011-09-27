@@ -20,7 +20,6 @@ import java.util.zip.GZIPOutputStream;
 import javax.xml.bind.DatatypeConverter;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 
 /**

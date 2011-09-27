@@ -19,7 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TimeZone;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.ConsoleHandler;
@@ -124,15 +123,10 @@ public class Main {
         
         // request processing threads, core and max set to same as LinkedBlockingQueue when used 
         // in threadPool does not have take max threads into account.
-        conf.setMinRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("requestProcessingThreads")));
-        conf.setMaxRequestProcessingThreads(Integer.parseInt(amoebaProps.getProperty("requestProcessingThreads")));
+        int requestProcessingThreadCount = Integer.parseInt(amoebaProps.getProperty("requestProcessingThreads"));
+        conf.setMinRequestProcessingThreads(requestProcessingThreadCount);
+        conf.setMaxRequestProcessingThreads(requestProcessingThreadCount);
                 
-        // request queue
-        int reqQueueLength = Integer.parseInt(amoebaProps.getProperty("requestQueueLength"));
-        conf.setRequestQueueLength(reqQueueLength);
-        // queue length of request timestamps is same as that of for raw requests
-        conf.setRequestsTimestampQueueLength(reqQueueLength);
-        
         // web root
         conf.setDocumentRoot(amoebaProps.getProperty("documentRoot"));
         conf.setVirtualHost(Boolean.parseBoolean(amoebaProps.getProperty("virtualHost")));
@@ -150,7 +144,6 @@ public class Main {
         // cache
         conf.setMaxAge(Long.parseLong(amoebaProps.getProperty("maxAge")));
         conf.setInitialCacheSize(Integer.parseInt(amoebaProps.getProperty("initialCacheSize")));
-        conf.setCacheLoadFactor(Float.parseFloat(amoebaProps.getProperty("cacheLoadFactor")));
         conf.setCacheCapacity(Integer.parseInt(amoebaProps.getProperty("cacheCapacity")));
         
         // channel timeout
@@ -300,9 +293,9 @@ public class Main {
      * 
      */
     private static void setupRunTimeDataStructures() {
-        RuntimeData.setRequestQueue(new ArrayBlockingQueue<RequestBean>(conf.getRequestQueueLength(), true));
+        RuntimeData.setRequestQueue(new LinkedBlockingQueue<RequestBean>());
         RuntimeData.setResponseMap(new ConcurrentHashMap<Long, ResponseBean>());
-        RuntimeData.setRequestsTimestampQueue(new ArrayBlockingQueue<Long>(conf.getRequestsTimestampQueueLength(), true));
+        RuntimeData.setRequestsTimestampQueue(new LinkedBlockingQueue<Long>());
         RuntimeData.setCacheMap(new ConcurrentHashMap<String, LRUResourceCache>());
         RuntimeData.setClassLoaderMap(new ConcurrentHashMap<String, AmoebaClassLoader>());
         RuntimeData.setIdleChannelMap(new LinkedHashMap<SelectionKey, Long>(Configuration.getInitialIdleChannels(),
@@ -344,12 +337,7 @@ public class Main {
         logger.log(Level.INFO, "Request buffer capacity - {0} KB", conf.getReadBufferCapacity() / 1024);
 
         logger.log(Level.INFO, "Request processing threads in the thread pool - {0}", conf.getMinRequestProcessingThreads());
-        //logger.log(Level.INFO, "Max. request processing threads in the thread pool - {0}", conf.getMaxRequestProcessingThreads());
-        //logger.log(Level.INFO, "Time to live for non-core request processing threads - {0} seconds", conf.getTtlForNonCoreThreads());
-
-        logger.log(Level.INFO, "Queue length of the request beans - {0}", conf.getRequestQueueLength());
-        //logger.log(Level.INFO, "Queue length of the request processing thread pool - {0}", conf.getThreadPoolQueueLength());
-
+        
         logger.log(Level.INFO, "DocumentRoot - {0}", conf.getDocumentRoot());
         logger.log(Level.INFO, "VirtualHost - {0}", conf.isVirtualHost());
         logger.log(Level.INFO, "Compression - {0}", conf.getCompression());
@@ -361,7 +349,6 @@ public class Main {
         logger.log(Level.INFO, "Max Age - {0} seconds for cacheable resources", conf.getMaxAge());
 
         logger.log(Level.INFO, "Cache : Initial size - {0}", conf.getInitialCacheSize());
-        logger.log(Level.INFO, "Cache : Load factor - {0}", conf.getCacheLoadFactor());
         logger.log(Level.INFO, "Cache : Capacity - {0}", conf.getCacheCapacity());
         
         logger.log(Level.INFO, "Channel : Idle timeout - {0} seconds", conf.getIdleChannelTimeout());
@@ -660,7 +647,7 @@ public class Main {
     // Runtime Data structure references
     private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
-    private static ArrayBlockingQueue<RequestBean> requestQueue;
+    private static LinkedBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<Long, ResponseBean> responseMap;
-    private static ArrayBlockingQueue<Long> requestsTimestampQueue;
+    private static LinkedBlockingQueue<Long> requestsTimestampQueue;
 }
