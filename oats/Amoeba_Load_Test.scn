@@ -1,0 +1,439 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!-- --><Scenario _package_="oracle.oats.client.controller" dataRepository="Default" name="Amoeba_Load_Test" repository="Amoeba Load Test" workspace=".">
+   <profiles>
+      <Entry _class_=".DynamicProfile" target="OLT Server" useDatabanking="true" viewErrors="true">
+         <baseProfile name="amoeba_loadtest" repository="Amoeba Load Test" type="jwg" workspace="amoeba_loadtest">
+            <agents _length_="1">
+               <Entry _index_="0" _class_="string" value="Java"/>
+            </agents>
+            <errorList>
+            </errorList>
+            <modules _length_="3">
+               <Entry _index_="0" _class_="string" value="http"/>
+               <Entry _index_="1" _class_="string" value="basic"/>
+               <Entry _index_="2" _class_="string" value="utilities"/>
+            </modules>
+            <postList>
+            </postList>
+            <preList>
+            </preList>
+            <runList>
+               <Entry _class_=".ScriptInfo" name="amoeba_loadtest" repository="Amoeba Load Test" scriptRuntimeID="amoeba_loadtest" scriptType="jwg" useScriptDatabankFile="true" workspace="amoeba_loadtest">
+                  <databankInfos>
+                  </databankInfos>
+                  <databankUsage value="LOOP_FOREVER"/>
+                  <modules _class_="java.util.ArrayList">
+                  </modules>
+                  <syncPointInfos>
+                  </syncPointInfos>
+               </Entry>
+            </runList>
+         </baseProfile>
+         <properties>
+            <Entry>
+               <key _class_="string" value="Cookie"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PreserveCookies"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="VUSFLAG_COOKIEDIRS"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="TextMatchFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PacingMin"/>
+               <value _class_="string" value="2"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ObjectDownloadsFatal"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PacingMax"/>
+               <value _class_="string" value="2"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="IgnoredUrlRegex"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="FormsLTSaveMsgLog"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="OpenscriptDownloadManager"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="OnErrorStopVU"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="VUSFLAG_HIDEAGENT"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="VariableNotFound"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ReportCounters"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="EmbedObjectResource"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="THICK_SHOW_JAVA_WINDOW"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="DatabankInitTimeout"/>
+               <value _class_="string" value="90"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ScriptResource"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="HTMLParserError"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="HttpVersion"/>
+               <value _class_="string" value="HTTP/1.1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="IgnoredUrl"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="KeyLoadError"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ProxyHost"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MaxKeepAliveRequests"/>
+               <value _class_="string" value="-1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ControlInitializeFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="CacheDownloadPages"/>
+               <value _class_="string" value="True"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="StopIterOnFailure"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="InvalidHTTPResponse"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="FormsComponentNotFound"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="VUCount"/>
+               <value _class_="string" value="10"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ResponseTimeError"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="IPSpoofing"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AutoGenerateTimersAllResources"/>
+               <value _class_="string" value="True"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="language"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ReplaceURLs"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AppletResource"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="deflate"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="DownloadLocalFiles"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="SolveVariableFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="EnableKeepAlive"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AutoGenerateTimersAllPages"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="RequestTimeout"/>
+               <value _class_="string" value="120"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ZeroDownloadsFatal"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MaxConnectionsPerUser"/>
+               <value _class_="string" value="-1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="VUSFLAG_CLOSESOCKETS"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ReportSenderInterval"/>
+               <value _class_="string" value="5000"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="OnlyUpdateEndOfIteration"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PacingUpper"/>
+               <value _class_="string" value="50"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="SegmentParserFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="EncryptNotInit"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MessageIOError"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PreserveVariables"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MaxContentSize"/>
+               <value _class_="string" value="-1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AdditionalArguments"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="InvalidURL"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="FunctionException"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="FormsLTHeartBeatInterval"/>
+               <value _class_="string" value="0"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="Pacing"/>
+               <value _class_="string" value="No Delay"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ViewRequestHeaders"/>
+               <value _class_="string" value="ON_ERROR"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ImgResource"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="IterationDelay"/>
+               <value _class_="string" value="10"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MaxCacheSize"/>
+               <value _class_="string" value="256"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MissingFramesFatal"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="SocketTimeout"/>
+               <value _class_="string" value="120"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ViewHtml"/>
+               <value _class_="string" value="ON_ERROR"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="CreateVariableFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="GeneralScriptError"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="Workstation"/>
+               <value _class_="string" value="OLT Server"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ViewResponseHeaders"/>
+               <value _class_="string" value="ON_ERROR"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MaxUsersPerProcess"/>
+               <value _class_="string" value="-1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PreserveConnections"/>
+               <value _class_="string" value="False"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="FormsMatchError"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="CssResource"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="SSLVersion"/>
+               <value _class_="string" value="TLS"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PacingLower"/>
+               <value _class_="string" value="50"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ConnectionSpeed"/>
+               <value _class_="string" value="True Line Speed"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="EveryVisitCheckNewCache"/>
+               <value _class_="string" value="False"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="GlobalHeaders"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="Browser"/>
+               <value _class_="string" value="Internet Explorer 8.0"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="MaxHeapSize"/>
+               <value _class_="string" value="-1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ProxyPort"/>
+               <value _class_="string" value="-1"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ShowDebugAgentUsers"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AutoGenerateTimersAllStepGroups"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="NonProxyHosts"/>
+               <value _class_="string" value=""/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="gzip"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ChildScriptException"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="DatabankReadTimeout"/>
+               <value _class_="string" value="20"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ViewErrors"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ClearCachePeriter"/>
+               <value _class_="string" value="True"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="FileNotFound"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="IgnoreProxy"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AutoCheckNewCache"/>
+               <value _class_="string" value="True"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ConnectFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="PersistRawData"/>
+               <value _class_="string" value="FALSE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="UseDatabanking"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="AcceptString"/>
+               <value _class_="string" value="text/html, image/gif, image/jpeg, */*"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="ExecuteTests"/>
+               <value _class_="string" value="TRUE"/>
+            </Entry>
+            <Entry>
+               <key _class_="string" value="BinaryDecodeFail"/>
+               <value _class_="string" value="Fail"/>
+            </Entry>
+         </properties>
+      </Entry>
+   </profiles>
+   <rampMonitor>
+      <groupData number="10" percent="0.1">
+         <type value="PERCENT"/>
+      </groupData>
+      <rampTrigger _class_=".TimeTrigger" delay="-1" period="5000">
+         <triggerType value="PERIODIC"/>
+      </rampTrigger>
+      <start _class_=".TimeTrigger" period="-1">
+         <triggerType value="START_AFTER_DELAY"/>
+      </start>
+   </rampMonitor>
+</Scenario>

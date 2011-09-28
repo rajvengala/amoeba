@@ -86,11 +86,7 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
     }
 
     public int getIdleChannelMapSize() {
-        int size=0;
-        synchronized(idleChannelMap){
-            size = idleChannelMap.size();
-        }
-        return size;
+        return idleChannelMap.size();
     }
     
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;

@@ -382,7 +382,7 @@ public class Configuration {
     private static final String SERVER_HEADER = "Amoeba 0.1.0";
     private static final String CONF_FILE = "amoeba.conf";
     private static final String CONTEXT_CONF = "context.conf";
-    private static final long EVENT_LOOP_DELAY = 40; // milli seconds
+    private static final long EVENT_LOOP_DELAY = 50; // milli seconds
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
     private static Configuration conf;

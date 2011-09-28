@@ -392,24 +392,22 @@ public class Main {
         int channelTimeout = conf.getIdleChannelTimeout(); 
         while (true) {
             // close idle channels if timeout is reached
-            synchronized(idleChannelMap){
-                Iterator<Entry<SelectionKey, Long>> idleChannelSetItr = idleChannelMap.entrySet().iterator();
-                while(idleChannelSetItr.hasNext()){
-                    Entry<SelectionKey, Long> idleChannelEntry = idleChannelSetItr.next();
-                    long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - idleChannelEntry.getValue());
-                    if(idleTime >= channelTimeout){
-                        SelectionKey key = idleChannelEntry.getKey();
-                        SocketChannel socketChannel = (SocketChannel)key.channel();
-                        socketChannel.close();
-                        key.cancel();
-                        openSocketsCount--;
-                        idleChannelSetItr.remove();
-                    } else {
-                        break;
-                    }
+            Iterator<Entry<SelectionKey, Long>> idleChannelSetItr = idleChannelMap.entrySet().iterator();
+            while(idleChannelSetItr.hasNext()){
+                Entry<SelectionKey, Long> idleChannelEntry = idleChannelSetItr.next();
+                long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - idleChannelEntry.getValue());
+                if(idleTime >= channelTimeout){
+                    SelectionKey key = idleChannelEntry.getKey();
+                    SocketChannel socketChannel = (SocketChannel)key.channel();
+                    socketChannel.close();
+                    key.cancel();
+                    openSocketsCount--;
+                    idleChannelSetItr.remove();
+                } else {
+                    break;
                 }
             }
- 
+          
             // wait for an event on one of the registered channels
             selector.select();
             
