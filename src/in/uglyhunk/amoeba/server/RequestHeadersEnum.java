@@ -38,5 +38,3 @@ public enum RequestHeadersEnum {
 
     private String requestHeaderName;
 }
-
-

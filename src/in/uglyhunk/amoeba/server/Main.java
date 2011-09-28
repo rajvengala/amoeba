@@ -460,7 +460,7 @@ public class Main {
      */
     private static void readDataFromChannel(SelectionKey key) {
         ByteBuffer readBuffer = ByteBuffer.allocate(conf.getReadBufferCapacity());
-
+        
         SocketChannel socketChannel = null;
         int bytesRead;
         try {
@@ -507,7 +507,7 @@ public class Main {
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
-            logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            logger.log(Level.WARNING, ioe.toString(), ioe);
             key.cancel();
             try {
                 socketChannel.close();
@@ -632,6 +632,8 @@ public class Main {
         return openSocketsCount;
     }
     
+    //private static ByteBuffer readBuffer;
+            
     private static Properties amoebaProps;
     private static ConsoleHandler console;
     private static FileHandler logFile;

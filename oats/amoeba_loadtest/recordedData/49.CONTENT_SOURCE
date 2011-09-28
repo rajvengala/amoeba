@@ -1,0 +1,43 @@
+#header{
+	float:left;
+	margin-left:33%;
+}
+
+#tile1{
+	position:relative;
+	top:10px;
+	float:left;
+	margin-left:30%;
+}
+
+#tile2{
+	position:relative;
+	top:10px;
+	float:left;
+}
+
+#tile3{
+	position:relative;
+	top:10px;
+	clear:both;
+	float:left;
+	margin-left:30%;
+}
+
+#tile4{
+	position:relative;
+	top:10px;
+	float:left;
+}
+#link1{
+	clear:both;
+	position:relative;
+	top:20px;
+	text-align:center;
+}
+#link2{
+	clear:both;
+	position:relative;
+    top:20px;
+	text-align:center;
+}

@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Require-Bundle: oracle.oats.jagent.lib3rdparty,oracle.oats.javaAgent,o
+ racle.oats.jagent.cmdline,org.apache.jakarta_log4j,oracle.oats.framew
+ ork,oracle.oats.utilities,oracle.oats.jagent.scripting,oracle.oats.lb
+ rowser,oracle.oats.parser,oracle.oats.scripting.modules.basic.api,ora
+ cle.oats.scripting.modules.utilities.api,oracle.oats.scripting.module
+ s.http.api,oracle.oats.scripting.modules.http.api.dom,oracle.oats.scr
+ ipting.modules.http.api.lib
+Bundle-Version: 1.0.0.qualifier
+Bundle-Name: amoeba_loadtest
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: Default..amoeba_loadtest
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+

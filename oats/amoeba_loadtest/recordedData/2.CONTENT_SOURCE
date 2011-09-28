@@ -7,10 +7,10 @@
 	</head>
 	<body>
 		<div id="header"><img src="images/indx.png" alt="header"/></div>
-		<div id="tile1"><img src="images/one.png" alt="one"/></div>
-		<div id="tile2"><img src="images/two.jpg" alt="two"/></div>
-		<div id="tile3"><img src="images/three.gif" alt="three"/></div>
-		<div id="tile4"><img src="images/four.bmp" alt="four"/></div>
+		<div id="tile1"><img src="images/1.png" alt="one"/></div>
+		<div id="tile2"><img src="images/2.jpg" alt="two"/></div>
+		<div id="tile3"><img src="images/3.gif" alt="three"/></div>
+		<div id="tile4"><img src="images/4.bmp" alt="four"/></div>
 		<div id="link1"><a href="page1.html">Page-1</a></div>
 		<div id="link2"><a href="animation.html">Animation</a></div>
 	</body>
