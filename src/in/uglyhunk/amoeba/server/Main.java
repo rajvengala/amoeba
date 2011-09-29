@@ -427,10 +427,6 @@ public class Main {
                     }
                 }
             }
-            
-            // ugly work around to read the requests 
-            // from the browser in the correct order
-            Thread.sleep(conf.getEventLoopDelay()); 
         }
     }
    
@@ -487,7 +483,10 @@ public class Main {
             // periodically and closes idle channels
             idleChannelMap.put(key, timestamp);
                         
-            //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
+//            System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
+//            System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
+//            logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
+//                                                        new String(readBuffer.array()).split("\r\n")[0]});
 
             // put the request timestamp in the queue.
             // responses will be sent in the order of requests
@@ -519,6 +518,7 @@ public class Main {
         } 
     }
 
+    
     public static void writeToChannel(SelectionKey key) {
         SocketChannel socketChannel = null;
         try {
@@ -530,6 +530,8 @@ public class Main {
                 // remove the response bean object from responseMap
                 responseMap.remove(requestsTimestampQueue.poll());
 
+                //socketChannel = (SocketChannel) key.channel();
+                socketChannel = respBean.getSocketChannel();
                 String statusLine = respBean.getStatusLine();
                 String contentType = respBean.getContentType();
                 String contentLength = respBean.getContentLength();
@@ -595,14 +597,14 @@ public class Main {
                 }
 
                 respByteBuffer.flip();
-                socketChannel = (SocketChannel) key.channel();
                 int totalBytesSent = socketChannel.write(respByteBuffer);
 
                 String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
-
                 logger.log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ",
                         new Object[]{clientAddr, resource,
                             statusCode, totalBytesSent, respCacheTag});
+                
+                //System.out.println("Write - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
             } else {
                 key.interestOps(SelectionKey.OP_WRITE);
                 key.selector().wakeup();
@@ -629,9 +631,7 @@ public class Main {
     public static int getOpenSocketCount(){
         return openSocketsCount;
     }
-    
-    //private static ByteBuffer readBuffer;
-            
+   
     private static Properties amoebaProps;
     private static ConsoleHandler console;
     private static FileHandler logFile;
