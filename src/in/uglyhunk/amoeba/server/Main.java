@@ -399,9 +399,11 @@ public class Main {
                 if(idleTime >= channelTimeout){
                     SelectionKey key = idleChannelEntry.getKey();
                     SocketChannel socketChannel = (SocketChannel)key.channel();
-                    socketChannel.close();
+                    if(socketChannel.isOpen()){
+                        socketChannel.close();
+                        openSocketsCount--;
+                    }
                     key.cancel();
-                    openSocketsCount--;
                     idleChannelSetItr.remove();
                 } else {
                     break;
@@ -466,7 +468,6 @@ public class Main {
                 // remote socket shutdown was clean
                 socketChannel.close();
                 key.cancel();
-                openSocketsCount--;
                 return;
             }
 
@@ -483,10 +484,10 @@ public class Main {
             // periodically and closes idle channels
             idleChannelMap.put(key, timestamp);
                         
-//            System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
-//            System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
-//            logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
-//                                                        new String(readBuffer.array()).split("\r\n")[0]});
+            //System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
+            //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
+            //logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
+            //                                            new String(readBuffer.array()).split("\r\n")[0]});
 
             // put the request timestamp in the queue.
             // responses will be sent in the order of requests
@@ -508,14 +509,13 @@ public class Main {
             key.cancel();
             try {
                 socketChannel.close();
-                openSocketsCount--;
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
             }
             return;
         } catch (InterruptedException ie) {
             logger.log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
-        } 
+        }
     }
 
     
@@ -620,7 +620,6 @@ public class Main {
             key.cancel();
             try {
                 socketChannel.close();
-                openSocketsCount--;
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
             }
@@ -641,8 +640,10 @@ public class Main {
     private static File logDir;
     private static SimpleDateFormat sdf;
     private static Logger logger;
-    private static int openSocketsCount;
     private static Configuration conf;
+    
+    // As of now only single thread modified this class variable
+    private static volatile int openSocketsCount;
     
     // Runtime Data structure references
     private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
