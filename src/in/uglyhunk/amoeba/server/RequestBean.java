@@ -285,20 +285,6 @@ public class RequestBean {
     }
     
     /**
-     * @return the timestamp
-     */
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    /**
-     * @param timestamp the timestamp to set
-     */
-    void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    /**
      * @return the rawRequestBytes
      */
     public byte[] getRawRequestBytes() {
@@ -361,7 +347,6 @@ public class RequestBean {
     private String body;
     private String rawRequest;
     private SelectionKey selectionKey;
-    private long timestamp;
     private long ifModifiedSince;
     private String eTag;
     private byte[] rawRequestBytes;

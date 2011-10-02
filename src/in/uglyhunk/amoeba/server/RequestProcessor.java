@@ -29,7 +29,6 @@ public class RequestProcessor implements Runnable {
         try {
             RequestBean reqBean = requestQueue.take();
             byte[] readBufferArray = reqBean.getRawRequestBytes();
-            long timestamp = reqBean.getTimestamp();
             SelectionKey key = reqBean.getSelectionKey();
             
             ByteBuffer readBuffer = ByteBuffer.allocate(readBufferArray.length);
@@ -40,7 +39,7 @@ public class RequestProcessor implements Runnable {
             parseRequest(reqBean, rawRequest);
                                     
             ResponseBean response = new ResponseCreator(reqBean).process();
-            responseMap.put(timestamp, response);
+            responseMap.put(key, response);
                  
             key.interestOps(SelectionKey.OP_WRITE);
             key.selector().wakeup();
@@ -213,5 +212,5 @@ public class RequestProcessor implements Runnable {
   
     private static Charset charset = Utilities.getCharset();
     private static LinkedBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
-    private static ConcurrentHashMap<Long, ResponseBean> responseMap = RuntimeData.getResponseMap();
+    private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap = RuntimeData.getResponseMap();
 }

@@ -7,9 +7,8 @@ package in.uglyhunk.amoeba.server;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -65,29 +64,29 @@ public class RuntimeData {
     /**
      * @return the responseMap
      */
-    public static ConcurrentHashMap<Long, ResponseBean> getResponseMap() {
+    public static ConcurrentHashMap<SelectionKey, ResponseBean> getResponseMap() {
         return responseMap;
     }
 
     /**
      * @param aResponseMap the responseMap to set
      */
-    public static void setResponseMap(ConcurrentHashMap<Long, ResponseBean> aResponseMap) {
+    public static void setResponseMap(ConcurrentHashMap<SelectionKey, ResponseBean> aResponseMap) {
         responseMap = aResponseMap;
     }
 
     /**
      * @return the requestsTimestampQueue
      */
-    public static LinkedBlockingQueue<Long> getRequestsTimestampQueue() {
-        return requestsTimestampQueue;
+    public static LinkedBlockingQueue<SelectionKey> getSelectionKeyQueue() {
+        return selectionKeyQueue;
     }
 
     /**
      * @param aRequestsTimestampQueue the requestsTimestampQueue to set
      */
-    public static void setRequestsTimestampQueue(LinkedBlockingQueue<Long> aRequestsTimestampQueue) {
-        requestsTimestampQueue = aRequestsTimestampQueue;
+    public static void setSelectionKeyQueue(LinkedBlockingQueue<SelectionKey> aSelectionKeyQueue) {
+        selectionKeyQueue = aSelectionKeyQueue;
     }
 
     /**
@@ -121,15 +120,15 @@ public class RuntimeData {
     /**
      * @return the idleChannelMap
      */
-    public static LinkedHashMap<SelectionKey, Long> getIdleChannelMap() {
-        return idleChannelMap;
+    public static HashMap<SelectionKey, Long> getSelectionKeyTimestampMap() {
+        return selectionKeylTimestampMap;
     }
 
     /**
      * @param aIdleChannelMap the idleChannelMap to set
      */
-    public static void setIdleChannelMap(LinkedHashMap<SelectionKey, Long> aIdleChannelMap) {
-        idleChannelMap = aIdleChannelMap;
+    public static void setSelectionKeyTimestampMap(HashMap<SelectionKey, Long> aSelectionKeyTimestampMap) {
+        selectionKeylTimestampMap = aSelectionKeyTimestampMap;
     }
 
     /**
@@ -161,6 +160,14 @@ public class RuntimeData {
         contextDymaicInstanceMap = aContextDymaicInstanceMap;
     }
     
+    
+    public static ArrayList<SelectionKey> getIdleSelectionKeyList(){
+        return idleSelectionKeyList;
+    }
+    
+    public static void setIdleSelectionKeyList(ArrayList<SelectionKey> aIdleSelectionKeyList){
+        idleSelectionKeyList = aIdleSelectionKeyList;
+    }
         
     /*
      * Instance of a class that extends ThreadPoolExecutor
@@ -184,13 +191,13 @@ public class RuntimeData {
     /*
      * Maps the timestamp of the request with the response bean for that request
      */
-    private static ConcurrentHashMap<Long, ResponseBean> responseMap;
+    private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap;
     
     /*
-     * timestamp of each request will be entered into the queue and removed from
-     * the queue after the response is sent to the client
+     * SelectionKey of each request will be pushed into the queue and 
+     * removed from the queue after the response is sent to the client
      */
-    private static LinkedBlockingQueue<Long> requestsTimestampQueue;
+    private static LinkedBlockingQueue<SelectionKey> selectionKeyQueue;
     
     /*
      * Maps context name to the LRUResourceCache object.
@@ -207,7 +214,7 @@ public class RuntimeData {
     /*
      * Maps selection key to the timestamp of the request.
      */
-    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
+    private static HashMap<SelectionKey, Long> selectionKeylTimestampMap;
     
     /*
      * Maps the context to another map data structure(referred map).
@@ -221,5 +228,12 @@ public class RuntimeData {
      * Referred map maps the className to its instance.
      */
     private static ConcurrentHashMap<String, HashMap<String, DynamicRequest>> contextDymaicInstanceMap;
+    
+    /*
+     * List of SelectionKeys which can be discarded
+     * Selection keys are added to the list after
+     * timeout for a channel has reached
+     */
+    private static ArrayList<SelectionKey> idleSelectionKeyList;
 
 }

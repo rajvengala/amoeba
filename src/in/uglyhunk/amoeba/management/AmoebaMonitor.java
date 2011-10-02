@@ -13,6 +13,7 @@ import in.uglyhunk.amoeba.server.ResponseBean;
 import in.uglyhunk.amoeba.server.ResponseCreator;
 import in.uglyhunk.amoeba.server.RuntimeData;
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,9 +31,9 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
         requestQueue = RuntimeData.getRequestQueue();
         cacheMap = RuntimeData.getCacheMap();
         responseMap = RuntimeData.getResponseMap();
-        requestsTimestampQueue = RuntimeData.getRequestsTimestampQueue();
+        selectionKeyQueue = RuntimeData.getSelectionKeyQueue();
         classLoaderMap = RuntimeData.getClassLoaderMap();
-        idleChannelMap = RuntimeData.getIdleChannelMap();
+        selectionKeyTimestampMap = RuntimeData.getSelectionKeyTimestampMap();
     }
 
     public int getRequestProcessingThreadPoolSize() {
@@ -69,33 +70,33 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
         return ResponseCreator.getResourcesReadFromDisk();
     }
     
-    public int getOpenSocketsCount() {
-        return Main.getOpenSocketCount();
+    public int getOpenChannelsCount() {
+        return Main.getOpenChannelsCount();
     }
     
     public int getResponseMapSize() {
        return responseMap.size();
     }
 
-    public int getRequestTimestampQueueLength() {
-        return requestsTimestampQueue.size();
+    public int getSelectionKeyQueueLength() {
+        return selectionKeyQueue.size();
     }
     
     public int getClassLoaderCount() {
         return classLoaderMap.size();
     }
 
-    public int getIdleChannelMapSize() {
-        return idleChannelMap.size();
+    public int getSelectionKeyTimestampMapSize() {
+        return selectionKeyTimestampMap.size();
     }
     
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
     private static LinkedBlockingQueue<Runnable> threadPoolQueue;
     private static LinkedBlockingQueue<RequestBean> requestQueue;
     private static ConcurrentHashMap<String, LRUResourceCache> cacheMap;
-    private static ConcurrentHashMap<Long, ResponseBean> responseMap;
-    private static LinkedBlockingQueue<Long> requestsTimestampQueue;
+    private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap;
+    private static LinkedBlockingQueue<SelectionKey> selectionKeyQueue;
     private static ConcurrentHashMap<String, AmoebaClassLoader> classLoaderMap;
-    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
+    private static HashMap<SelectionKey, Long> selectionKeyTimestampMap;
 }
 

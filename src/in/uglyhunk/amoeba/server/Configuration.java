@@ -54,22 +54,22 @@ public class Configuration {
     /**
      * @return the initialConnectionsSize
      */
-    public static int getInitialIdleChannels() {
-        return initialIdleChannels;
+    public static int getInitialSelectionKeysSize() {
+        return initialSelectionKeysSize;
     }
 
     /**
      * @return the totalConnectionsSize
      */
-    public static int getTotalIdleChannels() {
-        return totalIdleChannels;
+    public static int getTotalSelectionKeysSize() {
+        return totalSelectionKeysSize;
     }
 
     /**
      * @return the connectiosLoadFactor
      */
-    public static float getIdleChannelsMapLoadFactor() {
-        return idleChannelsMapLoadFactor;
+    public static float getSelectionKeyTimestampMapLoadFactor() {
+        return selectionKeyTimestampMapLoadFactor;
     }
 
     /**
@@ -359,9 +359,9 @@ public class Configuration {
     private String njasHome; // environment variable
     
     private int idleChannelTimeout; // seconds
-    private static final int initialIdleChannels = 200;
-    private static final int totalIdleChannels = 1000;
-    private static final float idleChannelsMapLoadFactor = 0.75F;
+    private static final int initialSelectionKeysSize = 200;
+    private static final int totalSelectionKeysSize = 1000;
+    private static final float selectionKeyTimestampMapLoadFactor = 0.75F;
     
     // This does not have any bearing on the thread pool
     // as the core threads and max threads are equal

@@ -15,7 +15,6 @@ import java.nio.channels.spi.SelectorProvider;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -286,7 +285,7 @@ public class Main {
     /**
      * Sets up the following data structures <br/>
      * <i>requestQueue</i> - Queue of size <i>requestQueueLength</i> to hold the requests from clients <br/>
-     * <i>requestsTimestampQueue</i> - Queue of size <i>requestsTimestampQueue</i> to hold the timestamps of requests 
+     * <i>selectionKeyQueue</i> - Queue of size <i>requestsTimestampQueue</i> to hold the timestamps of requests 
      * from the clients in the order their arrival <br/>
      * <i>responseMap</i> - processed requests from the requestQueue will be stored in this map with timestamp
      * of the request as key <br/>
@@ -294,12 +293,13 @@ public class Main {
      */
     private static void setupRunTimeDataStructures() {
         RuntimeData.setRequestQueue(new LinkedBlockingQueue<RequestBean>());
-        RuntimeData.setResponseMap(new ConcurrentHashMap<Long, ResponseBean>());
-        RuntimeData.setRequestsTimestampQueue(new LinkedBlockingQueue<Long>());
+        RuntimeData.setResponseMap(new ConcurrentHashMap<SelectionKey, ResponseBean>());
+        RuntimeData.setSelectionKeyQueue(new LinkedBlockingQueue<SelectionKey>());
         RuntimeData.setCacheMap(new ConcurrentHashMap<String, LRUResourceCache>());
         RuntimeData.setClassLoaderMap(new ConcurrentHashMap<String, AmoebaClassLoader>());
-        RuntimeData.setIdleChannelMap(new LinkedHashMap<SelectionKey, Long>(Configuration.getInitialIdleChannels(),
-                                                               Configuration.getIdleChannelsMapLoadFactor()));
+        RuntimeData.setSelectionKeyTimestampMap(new HashMap<SelectionKey, Long>(Configuration.getInitialSelectionKeysSize(),
+                                                               Configuration.getTotalSelectionKeysSize()));
+        RuntimeData.setIdleSelectionKeyList(new ArrayList<SelectionKey>());
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
     }
@@ -383,33 +383,15 @@ public class Main {
         logger.fine("Registered channel with selector to alert for clien accept connection request arrives ");
 
         // use references to runtime datastructures in this class
-        idleChannelMap = RuntimeData.getIdleChannelMap();
+        selectionKeyTimestampMap = RuntimeData.getSelectionKeyTimestampMap();
         requestProcessingThreadPool = RuntimeData.getRequestProcessingThreadPool();
         requestQueue = RuntimeData.getRequestQueue();
         responseMap = RuntimeData.getResponseMap();
-        requestsTimestampQueue = RuntimeData.getRequestsTimestampQueue();
+        selectionKeyQueue = RuntimeData.getSelectionKeyQueue();
+        channelTimeout = conf.getIdleChannelTimeout(); 
+        idleSelectionKeyList = RuntimeData.getIdleSelectionKeyList();
         
-        int channelTimeout = conf.getIdleChannelTimeout(); 
         while (true) {
-            // close idle channels if timeout is reached
-            Iterator<Entry<SelectionKey, Long>> idleChannelSetItr = idleChannelMap.entrySet().iterator();
-            while(idleChannelSetItr.hasNext()){
-                Entry<SelectionKey, Long> idleChannelEntry = idleChannelSetItr.next();
-                long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - idleChannelEntry.getValue());
-                if(idleTime >= channelTimeout){
-                    SelectionKey key = idleChannelEntry.getKey();
-                    SocketChannel socketChannel = (SocketChannel)key.channel();
-                    if(socketChannel.isOpen()){
-                        socketChannel.close();
-                        openSocketsCount--;
-                    }
-                    key.cancel();
-                    idleChannelSetItr.remove();
-                } else {
-                    break;
-                }
-            }
-          
             // wait for an event on one of the registered channels
             selector.select();
             
@@ -429,6 +411,15 @@ public class Main {
                     }
                 }
             }
+            
+            // close idle channels in idleSelectionKeyList
+            for(SelectionKey key : idleSelectionKeyList){
+                SocketChannel socketChannel = (SocketChannel)key.channel();
+                socketChannel.close();
+                openChannelsCount--;
+                key.cancel();
+            }
+            idleSelectionKeyList.clear();
         }
     }
    
@@ -443,7 +434,7 @@ public class Main {
             SocketChannel socketChannel = serverChannel.accept();
             socketChannel.configureBlocking(false);
             socketChannel.register(selector, SelectionKey.OP_READ);
-            openSocketsCount++;
+            openChannelsCount++;
         } catch (IOException ioe) {
             logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         }
@@ -456,7 +447,6 @@ public class Main {
      */
     private static void readDataFromChannel(SelectionKey key) {
         ByteBuffer readBuffer = ByteBuffer.allocate(conf.getReadBufferCapacity());
-        
         SocketChannel socketChannel = null;
         int bytesRead;
         try {
@@ -471,28 +461,19 @@ public class Main {
                 return;
             }
 
-            long timestamp = System.nanoTime();
-
             // create a request bean from raw data
             RequestBean reqBean = new RequestBean();
             reqBean.setRawRequestBytes(readBuffer.array());
             reqBean.setSelectionKey(key);
-            reqBean.setTimestamp(timestamp);
-            
-            // save the selection key in ChannelCloser Map
-            // channel close thread scans this map
-            // periodically and closes idle channels
-            idleChannelMap.put(key, timestamp);
-                        
+                                    
             //System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
             //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
             //logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
             //                                            new String(readBuffer.array()).split("\r\n")[0]});
-
-            // put the request timestamp in the queue.
-            // responses will be sent in the order of requests
-            // as appeared in this queue
-            requestsTimestampQueue.put(timestamp);
+            
+            // put the selection key of the request in the queue.
+            // responses will be sent in the order as appeared in this queue
+            selectionKeyQueue.put(key);
 
             // put the request in request queue
             requestQueue.put(reqBean);
@@ -505,12 +486,14 @@ public class Main {
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
-            logger.log(Level.WARNING, ioe.toString(), ioe);
-            key.cancel();
             try {
+                logger.log(Level.WARNING, ioe.toString(), ioe);
+                key.cancel();
                 socketChannel.close();
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
+            } finally{
+                openChannelsCount--;
             }
             return;
         } catch (InterruptedException ie) {
@@ -521,16 +504,15 @@ public class Main {
     
     public static void writeToChannel(SelectionKey key) {
         SocketChannel socketChannel = null;
+        
         try {
-            Long timestamp = requestsTimestampQueue.peek();
-            if (timestamp != null && responseMap.containsKey(timestamp)) {
-                ResponseBean respBean = responseMap.get(timestamp);
+            if(key == selectionKeyQueue.peek() && responseMap.containsKey(key)){
+                ResponseBean respBean = responseMap.get(key);
 
                 // remove the request timestamp from requestsTimestampQueue
                 // remove the response bean object from responseMap
-                responseMap.remove(requestsTimestampQueue.poll());
+                responseMap.remove(selectionKeyQueue.poll());
 
-                //socketChannel = (SocketChannel) key.channel();
                 socketChannel = respBean.getSocketChannel();
                 String statusLine = respBean.getStatusLine();
                 String contentType = respBean.getContentType();
@@ -551,12 +533,19 @@ public class Main {
                 }
 
                 StringBuilder respHeaders = new StringBuilder();
-                respHeaders.append(statusLine).append(Utilities.getHTTPEOL()).append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL()).append("Server: ").append(server).append(Utilities.getHTTPEOL());
+                
+                // Status line
+                respHeaders.append(statusLine).append(Utilities.getHTTPEOL());
+                
+                // Content-Type header
+                respHeaders.append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL());
 
+                // Content-Length header
                 if (contentLength != null) {
                     respHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
                 }
 
+                // Contet-Encoding header
                 if(conf.getCompression()) {
                     String contentEncoding = respBean.getContentEncoding();
                     if (contentEncoding != null) {
@@ -564,17 +553,40 @@ public class Main {
                     }
                 }
 
+                // Last-Modified header
                 if (lastModified != 0) {
                     String lastModifiedValue = sdf.format(new Date(lastModified));
                     respHeaders.append("Last-Modified: ").append(lastModifiedValue).append(Utilities.getHTTPEOL());
                 }
 
+                // etag header
                 if (eTag != null) {
                     respHeaders.append("ETag: \"").append(eTag).append("\"").append(Utilities.getHTTPEOL());
                     respHeaders.append("Cache-Control: max-age=").append(conf.getMaxAge()).append(Utilities.getHTTPEOL());
                 }
 
+                // Server Header
+                respHeaders.append("Server: ").append(server).append(Utilities.getHTTPEOL());
+                
+                // Date header
                 respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis()))).append(Utilities.getHTTPEOL());
+                                
+                // Connection header
+                if(selectionKeyTimestampMap.containsKey(key)){
+                    long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - selectionKeyTimestampMap.get(key));
+                    if(idleTime >= channelTimeout){
+                        respHeaders.append("Connection: close").append(Utilities.getHTTPEOL());
+                        idleSelectionKeyList.add(key);
+                    } else {
+                        respHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
+                        selectionKeyTimestampMap.put(key, System.nanoTime());
+                    }
+                } else {
+                    respHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
+                    selectionKeyTimestampMap.put(key, System.nanoTime());
+                }
+                    
+                // new line - end of headers
                 respHeaders.append(Utilities.getHTTPEOL());
 
                 byte headerBytes[] = respHeaders.toString().getBytes("UTF-8");
@@ -596,39 +608,46 @@ public class Main {
                     respByteBuffer.put(respBodyBuffer.array());
                 }
 
+                System.out.println("Write - " + socketChannel.socket().getRemoteSocketAddress());
+                
                 respByteBuffer.flip();
                 int totalBytesSent = socketChannel.write(respByteBuffer);
 
                 String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
-                logger.log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ",
-                        new Object[]{clientAddr, resource,
-                            statusCode, totalBytesSent, respCacheTag});
-                
-                //System.out.println("Write - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
+                logger.log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ", new Object[]{clientAddr, 
+                                                                                            resource,
+                                                                                            statusCode, 
+                                                                                            totalBytesSent, 
+                                                                                            respCacheTag});
             } else {
                 key.interestOps(SelectionKey.OP_WRITE);
                 key.selector().wakeup();
                 return;
             }
+                       
+            // set the selection key ready for more reads
+            // from the client
             key.interestOps(SelectionKey.OP_READ);
             key.selector().wakeup();
             return;
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
-            logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
-            key.cancel();
             try {
+                logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+                key.cancel();
                 socketChannel.close();
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
+            } finally{
+                openChannelsCount--;
             }
             return;
         }
     }
 
-    public static int getOpenSocketCount(){
-        return openSocketsCount;
+    public static int getOpenChannelsCount(){
+        return openChannelsCount;
     }
    
     private static Properties amoebaProps;
@@ -641,14 +660,16 @@ public class Main {
     private static SimpleDateFormat sdf;
     private static Logger logger;
     private static Configuration conf;
+    private static int channelTimeout;
     
     // As of now only single thread modified this class variable
-    private static volatile int openSocketsCount;
+    private static volatile int openChannelsCount;
     
     // Runtime Data structure references
-    private static LinkedHashMap<SelectionKey, Long> idleChannelMap;
+    private static HashMap<SelectionKey, Long> selectionKeyTimestampMap;
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
     private static LinkedBlockingQueue<RequestBean> requestQueue;
-    private static ConcurrentHashMap<Long, ResponseBean> responseMap;
-    private static LinkedBlockingQueue<Long> requestsTimestampQueue;
+    private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap;
+    private static LinkedBlockingQueue<SelectionKey> selectionKeyQueue;
+    private static ArrayList<SelectionKey> idleSelectionKeyList;
 }
