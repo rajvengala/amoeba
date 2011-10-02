@@ -608,7 +608,7 @@ public class Main {
                     respByteBuffer.put(respBodyBuffer.array());
                 }
 
-                System.out.println("Write - " + socketChannel.socket().getRemoteSocketAddress());
+                //System.out.println("Write - " + socketChannel.socket().getRemoteSocketAddress());
                 
                 respByteBuffer.flip();
                 int totalBytesSent = socketChannel.write(respByteBuffer);
