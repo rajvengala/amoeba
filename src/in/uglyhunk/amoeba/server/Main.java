@@ -28,6 +28,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
+import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -56,20 +57,15 @@ public class Main {
      * 
      */
     public static void main(String[] args) {
-        try {
-            loadAmoebaConfig();
-            readAmoebaConfig();
-            setupHandlers();
-            setupRunTimeDataStructures();
-            readContextConfig();
-            setupWorkerThreads();
-            startJMXAgent();
-            logConfiguration();
-            runDaemon();
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, Utilities.stackTraceToString(e), e);
-            System.exit(1);
-        }
+        loadAmoebaConfig();
+        readAmoebaConfig();
+        setupHandlers();
+        setupRunTimeDataStructures();
+        readContextConfig();
+        setupWorkerThreads();
+        startJMXAgent();
+        logConfiguration();
+        runDaemon();
     }
 
     /**
@@ -362,64 +358,70 @@ public class Main {
      * 
      * @throws Exception 
      */
-    private static void runDaemon() throws Exception {
-        // create a selector
-        selector = SelectorProvider.provider().openSelector();
-        logger.info("Selector created");
+    private static void runDaemon() {
+        try{
+            // create a selector
+            selector = SelectorProvider.provider().openSelector();
+            logger.info("Selector created");
 
-        // create non-blocking server socket channel
-        serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(false);
+            // create non-blocking server socket channel
+            serverSocketChannel = ServerSocketChannel.open();
+            serverSocketChannel.configureBlocking(false);
 
-        // bind server socket channel to host:port
-        InetSocketAddress isa = new InetSocketAddress(conf.getHostname(), conf.getPort());
-        serverSocketChannel.socket().bind(isa);
-        logger.log(Level.INFO, "Server listening at {0}", isa.toString());
+            // bind server socket channel to host:port
+            InetSocketAddress isa = new InetSocketAddress(conf.getHostname(), conf.getPort());
+            serverSocketChannel.socket().bind(isa);
+            logger.log(Level.INFO, "Server listening at {0}", isa.toString());
 
-        // register server socket channel to the previously
-        // created selector and indicate the interest
-        // in accepting new connections
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        logger.fine("Registered channel with selector to alert for clien accept connection request arrives ");
+            // register server socket channel to the previously
+            // created selector and indicate the interest
+            // in accepting new connections
+            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+            logger.fine("Registered channel with selector to alert for clien accept connection request arrives ");
 
-        // use references to runtime datastructures in this class
-        selectionKeyTimestampMap = RuntimeData.getSelectionKeyTimestampMap();
-        requestProcessingThreadPool = RuntimeData.getRequestProcessingThreadPool();
-        requestQueue = RuntimeData.getRequestQueue();
-        responseMap = RuntimeData.getResponseMap();
-        selectionKeyQueue = RuntimeData.getSelectionKeyQueue();
-        channelTimeout = conf.getIdleChannelTimeout(); 
-        idleSelectionKeyList = RuntimeData.getIdleSelectionKeyList();
-        
-        while (true) {
-            // wait for an event on one of the registered channels
-            selector.select();
-            
-            // iterate over the keys and respond to the events
-            Iterator selectedKeys = selector.selectedKeys().iterator();
-            while (selectedKeys.hasNext()) {
-                SelectionKey key = (SelectionKey) selectedKeys.next();
-                selectedKeys.remove();
+            // use references to runtime datastructures in this class
+            selectionKeyTimestampMap = RuntimeData.getSelectionKeyTimestampMap();
+            requestProcessingThreadPool = RuntimeData.getRequestProcessingThreadPool();
+            requestQueue = RuntimeData.getRequestQueue();
+            responseMap = RuntimeData.getResponseMap();
+            selectionKeyQueue = RuntimeData.getSelectionKeyQueue();
+            channelTimeout = conf.getIdleChannelTimeout(); 
+            idleSelectionKeyList = RuntimeData.getIdleSelectionKeyList();
 
-                if (key.isValid()) {
-                    if (key.isAcceptable()) {
-                        acceptConnections(key);
-                    } else if (key.isReadable()) {
-                        readDataFromChannel(key);
-                    } else if (key.isWritable()) {
-                        writeToChannel(key);
+            while (true) {
+                // wait for an event on one of the registered channels
+                selector.select();
+
+                // iterate over the keys and respond to the events
+                Iterator selectedKeys = selector.selectedKeys().iterator();
+                while (selectedKeys.hasNext()) {
+                    SelectionKey key = (SelectionKey) selectedKeys.next();
+                    selectedKeys.remove();
+
+                    if (key.isValid()) {
+                        if (key.isAcceptable()) {
+                            acceptConnections(key);
+                        } else if (key.isReadable()) {
+                            readDataFromChannel(key);
+                        } else if (key.isWritable()) {
+                            writeToChannel(key);
+                        }
                     }
                 }
+
+                // close idle channels in idleSelectionKeyList
+                for(SelectionKey key : idleSelectionKeyList){
+                    SocketChannel socketChannel = (SocketChannel)key.channel();
+                    socketChannel.close();
+                    activeChannelsCount--;
+                    key.cancel();
+                }
+                idleSelectionKeyList.clear();
             }
-            
-            // close idle channels in idleSelectionKeyList
-            for(SelectionKey key : idleSelectionKeyList){
-                SocketChannel socketChannel = (SocketChannel)key.channel();
-                socketChannel.close();
-                openChannelsCount--;
-                key.cancel();
-            }
-            idleSelectionKeyList.clear();
+        } catch(ClosedChannelException cce){
+            logger.log(Level.SEVERE, Utilities.stackTraceToString(cce), cce);
+        } catch(IOException ioe){
+            logger.log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
     }
    
@@ -429,16 +431,15 @@ public class Main {
      * @param key selection key
      */
     private static void acceptConnections(SelectionKey key) {
-        ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
         try {
+            ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
             SocketChannel socketChannel = serverChannel.accept();
             socketChannel.configureBlocking(false);
             socketChannel.register(selector, SelectionKey.OP_READ);
-            openChannelsCount++;
-        } catch (IOException ioe) {
-            logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            activeChannelsCount++;
+        } catch(IOException ioe){
+            logger.log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
-
     }
 
     /**
@@ -492,12 +493,12 @@ public class Main {
                 socketChannel.close();
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
-            } finally{
-                openChannelsCount--;
             }
             return;
         } catch (InterruptedException ie) {
-            logger.log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
+            logger.log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
+        } finally{
+            activeChannelsCount--;
         }
     }
 
@@ -577,6 +578,7 @@ public class Main {
                     if(idleTime >= channelTimeout){
                         respHeaders.append("Connection: close").append(Utilities.getHTTPEOL());
                         idleSelectionKeyList.add(key);
+                        selectionKeyTimestampMap.remove(key);
                     } else {
                         respHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
                         selectionKeyTimestampMap.put(key, System.nanoTime());
@@ -639,15 +641,15 @@ public class Main {
                 socketChannel.close();
             } catch (IOException ioe2) {
                 logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
-            } finally{
-                openChannelsCount--;
             }
             return;
+        } finally {
+            activeChannelsCount--;
         }
     }
 
-    public static int getOpenChannelsCount(){
-        return openChannelsCount;
+    public static int getActiveChannelsCount(){
+        return activeChannelsCount;
     }
    
     private static Properties amoebaProps;
@@ -663,7 +665,7 @@ public class Main {
     private static int channelTimeout;
     
     // As of now only single thread modified this class variable
-    private static volatile int openChannelsCount;
+    private static volatile int activeChannelsCount;
     
     // Runtime Data structure references
     private static HashMap<SelectionKey, Long> selectionKeyTimestampMap;

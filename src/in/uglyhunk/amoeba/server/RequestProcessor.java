@@ -26,10 +26,11 @@ public class RequestProcessor implements Runnable {
     public RequestProcessor() {}
 
     public void run() {
+        SelectionKey key = null;
         try {
             RequestBean reqBean = requestQueue.take();
             byte[] readBufferArray = reqBean.getRawRequestBytes();
-            SelectionKey key = reqBean.getSelectionKey();
+            key = reqBean.getSelectionKey();
             
             ByteBuffer readBuffer = ByteBuffer.allocate(readBufferArray.length);
             readBuffer.put(readBufferArray);
@@ -45,17 +46,20 @@ public class RequestProcessor implements Runnable {
             key.selector().wakeup();
             
         } catch (UnsupportedEncodingException use){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(use), use);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(use), use);
         } catch(IOException ioe){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         } catch(InterruptedException ie){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ie), ie);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
         } catch(ParseException pe){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(pe), pe);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(pe), pe);
         } catch(NoSuchAlgorithmException nsae){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(nsae), nsae);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(nsae), nsae);
         } catch(Exception e){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
+        } finally{
+            // response should be 500 Internal Server Error
+           
         }
     }
 

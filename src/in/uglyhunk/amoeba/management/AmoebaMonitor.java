@@ -14,7 +14,6 @@ import in.uglyhunk.amoeba.server.ResponseCreator;
 import in.uglyhunk.amoeba.server.RuntimeData;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -70,8 +69,8 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
         return ResponseCreator.getResourcesReadFromDisk();
     }
     
-    public int getOpenChannelsCount() {
-        return Main.getOpenChannelsCount();
+    public int getActiveChannelsCount() {
+        return Main.getActiveChannelsCount();
     }
     
     public int getResponseMapSize() {
@@ -89,7 +88,7 @@ public class AmoebaMonitor implements AmoebaMonitorMBean{
     public int getSelectionKeyTimestampMapSize() {
         return selectionKeyTimestampMap.size();
     }
-    
+
     private static AmoebaThreadPoolExecutor requestProcessingThreadPool;
     private static LinkedBlockingQueue<Runnable> threadPoolQueue;
     private static LinkedBlockingQueue<RequestBean> requestQueue;

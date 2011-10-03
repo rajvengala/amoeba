@@ -90,7 +90,7 @@ public class ResponseCreator{
             return response;
     }
 
-    private void prepareResponseBody(String resource) throws Exception{
+    private void prepareResponseBody(String resource) {
        try {
             ByteBuffer responseBodyByteBuffer = null;
             String dynClassTag = Configuration.getDynamicClassTag();
@@ -258,13 +258,12 @@ public class ResponseCreator{
             respCode = "_404";
             setErrorResponse(respCode, resource);
             return;
-        } catch (IOException ioe) {
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+        } catch (Exception ioe) {
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
             respCode = "_500";
             setErrorResponse(respCode, resource);
             return;
         }
-        
         return;
     }
 
@@ -351,31 +350,34 @@ public class ResponseCreator{
         return true;
     }
 
-    private void setErrorResponse(String respCode, String resource) throws FileNotFoundException, IOException{
-        
-        File f = new File(conf.getErrorPageFolder() + File.separator + resource);
-        if(!f.exists()){
-            f = new File(conf.getErrorPageFolder() + File.separator + respCode.split("_")[1] + ".html");
-        }
-        
-        FileInputStream fis = new FileInputStream(f);
-        int fileLength = (int)f.length();
-                
-        FileChannel fc = fis.getChannel();
-        ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(fileLength);
-        fc.read(responseBodyByteBuffer);
-        responseBodyByteBuffer.flip();
-        
-        fis.close();
-        fc.close();
-                
-        if(conf.getCompression()){
-            compress(responseBodyByteBuffer.array());
-        } else {
-            respContentLength = fileLength;
-            response.setresponseCacheTag("[Disk]");
-            resourcesReadFromDisk++;
-            response.setBody(responseBodyByteBuffer);
+    private void setErrorResponse(String respCode, String resource) {
+        try{
+            File f = new File(conf.getErrorPageFolder() + File.separator + resource);
+            if(!f.exists()){
+                f = new File(conf.getErrorPageFolder() + File.separator + respCode.split("_")[1] + ".html");
+            }
+
+            FileInputStream fis = new FileInputStream(f);
+            int fileLength = (int)f.length();
+
+            FileChannel fc = fis.getChannel();
+            ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(fileLength);
+            fc.read(responseBodyByteBuffer);
+            responseBodyByteBuffer.flip();
+
+            fis.close();
+            fc.close();
+
+            if(conf.getCompression()){
+                compress(responseBodyByteBuffer.array());
+            } else {
+                respContentLength = fileLength;
+                response.setresponseCacheTag("[Disk]");
+                resourcesReadFromDisk++;
+                response.setBody(responseBodyByteBuffer);
+            }
+        } catch(IOException ioe){
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
         return;
     }

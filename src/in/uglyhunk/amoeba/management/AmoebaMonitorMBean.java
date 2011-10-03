@@ -16,7 +16,7 @@ public interface AmoebaMonitorMBean {
     public String getCacheInfo();
     public long getResourcesReadFromCache();
     public long getResourcesReadFromDisk();
-    public int getOpenChannelsCount();
+    public int getActiveChannelsCount();
     public int getResponseMapSize();
     public int getSelectionKeyQueueLength();
     public int getClassLoaderCount();
