@@ -214,11 +214,41 @@ public class ResponseBean {
     String getresponseCacheTag(){
         return responseCacheTag;
     }
+    
+     /**
+     * @return the contentRange
+     */
+    String getContentRange() {
+        return contentRange;
+    }
+
+    /**
+     * @param contentRange the contentRange to set
+     */
+    void setContentRange(String contentRange) {
+        this.contentRange = contentRange;
+    }
+
+    /**
+     * @return the AcceptRanges
+     */
+    String getAcceptRanges() {
+        return AcceptRanges;
+    }
+
+    /**
+     * @param AcceptRanges the AcceptRanges to set
+     */
+    void setAcceptRanges(String AcceptRanges) {
+        this.AcceptRanges = AcceptRanges;
+    }
         
     private String statusCode;
     private String statusLine;
     private String contentType;
     private String contentLength;
+    private String contentRange;
+    private String AcceptRanges;
     private String server;
     private String connection;
     private String contentEncoding;
@@ -230,5 +260,7 @@ public class ResponseBean {
     private String absoluteResource;
     private SelectionKey selectionKey;
     private String responseCacheTag;
+
+   
     
 }

@@ -58,8 +58,8 @@ public class RequestProcessor implements Runnable {
         }
     }
 
-    private void parseRequest(RequestBean reqBean, String rawRequest) throws ParseException {
-        reqBean.setRawRequest(rawRequest);
+    private void parseRequest(RequestBean requestBean, String rawRequest) throws ParseException {
+        requestBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getHTTPEOL());
         
         for(String line: requestLines) {
@@ -71,93 +71,93 @@ public class RequestProcessor implements Runnable {
                     tokens = line.split(" ");
                     if(tokens.length == 3) {
                         // http method
-                        reqBean.setMethod(tokens[0]);
+                        requestBean.setMethod(tokens[0]);
                         
                         // extract query string if exists
                         if(tokens[1].contains("?")){
                             String temp[] = tokens[1].split("\\?");
                             
                             //requested resource
-                            reqBean.setResource(temp[0]);
+                            requestBean.setResource(temp[0]);
 
                             // query string
-                            reqBean.setQueryString(temp[1]);
+                            requestBean.setQueryString(temp[1]);
                         } else {
-                            reqBean.setResource(tokens[1]);
+                            requestBean.setResource(tokens[1]);
                         }
                         
                         // http version
-                        reqBean.setHttpVersion(tokens[2]);
+                        requestBean.setHttpVersion(tokens[2]);
                     }
                     break;
 
                 case ACCEPT:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setAccept(tokens[1]);
+                        requestBean.setAccept(tokens[1]);
                     }
                     break;
 
                 case ACCEPT_ENCODING:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setAcceptEncoding(tokens[1]);
+                        requestBean.setAcceptEncoding(tokens[1]);
                     }
                     break;
 
                 case ACCEPT_LANGUAGE:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setAcceptLanguage(tokens[1]);
+                        requestBean.setAcceptLanguage(tokens[1]);
                     }
                     break;
 
                 case ACCEPT_CHARSET:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setAcceptLanguage(tokens[1]);
+                        requestBean.setAcceptLanguage(tokens[1]);
                     }
                     break;
                     
                 case USER_AGENT:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setUserAgent(tokens[1]);
+                        requestBean.setUserAgent(tokens[1]);
                     }
                     break;
 
                 case CONTENT_TYPE:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setContentType(tokens[1]);
+                        requestBean.setContentType(tokens[1]);
                     }
                     break;
 
                 case CONTENT_LENGTH:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setContentLength(tokens[1]);
+                        requestBean.setContentLength(tokens[1]);
                     }
                     break;
 
                 case CACHE_CONTROL:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setCacheControl(tokens[1]);
+                        requestBean.setCacheControl(tokens[1]);
                     }
                     break;
 
                 case CONNECTION:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setConnection(tokens[1]);
+                        requestBean.setConnection(tokens[1]);
                     }
                     break;
 
                 case COOKIE:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setCookie(tokens[1]);
+                        requestBean.setCookie(tokens[1]);
                     }
                     break;
                  
@@ -166,7 +166,7 @@ public class RequestProcessor implements Runnable {
                     if(tokens.length == 2){
                         String ifModifiedSince = tokens[1].trim();
                         long lastModifiedTime = Configuration.getSimpleDateFormat().parse(ifModifiedSince).getTime();
-                        reqBean.setIfModifiedSince(lastModifiedTime);
+                        requestBean.setIfModifiedSince(lastModifiedTime);
                     }
                     break;
 
@@ -174,27 +174,34 @@ public class RequestProcessor implements Runnable {
                     tokens = line.split(":");
                     if(tokens.length == 2){
                         // ETag in request header is enclosed in double quotes
-                        reqBean.setETag(tokens[1].trim().split("\"")[1]);
+                        requestBean.setETag(tokens[1].trim().split("\"")[1]);
                     }
                     break;
                     
                 case HOST:
                     tokens = line.split(":");
                     if(tokens.length >= 2) {
-                        reqBean.setHost(tokens[1].trim());
+                        requestBean.setHost(tokens[1].trim());
                     }
                     break;
 
                 case REFERER:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        reqBean.setReferer(tokens[1]);
+                        requestBean.setReferer(tokens[1]);
+                    }
+                    break;
+                    
+                case RANGE:
+                    tokens = line.split(":");
+                    if(tokens.length == 2) {
+                        requestBean.setRange(tokens[1]);
                     }
                     break;
 
                 default:
-                    if(line.length() == reqBean.getContentLength()){
-                        reqBean.setBody(line);
+                    if(line.length() == requestBean.getContentLength()){
+                        requestBean.setBody(line);
                     }
             }
         }

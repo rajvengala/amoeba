@@ -327,12 +327,26 @@ public class RequestBean {
         this.eTag = eTag;
     }
   
+    /**
+     * @return the range
+     */
+    public String getRange() {
+        return range;
+    }
+
+    /**
+     * @param range the range to set
+     */
+    public void setRange(String range) {
+        this.range = range;
+    }
 
     private String method;
     private String resource;
     private String queryString;
     private String httpVersion;
     private String accept;
+    private String range;
     private String acceptLanguage;
     private String acceptEncoding;
     private String acceptCharset;

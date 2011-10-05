@@ -192,9 +192,10 @@ public class ResponseCreator{
                 File f = new File(resourcePath.toString());
                 lastModified = f.lastModified();
                 
-                // check if the request is conditional,
-                // retrieve eTag header if exists in the request
-                // hearders for thie resource
+                // ************* Conditional request test *************
+                
+                // Check if the request is conditional and retrieve eTag header 
+                // if exists in the request hearders for thie resource
                 String reqETag = requestBean.getETag();
                 eTag = calculateETag();
                 if(reqETag != null && reqETag.equals(eTag)){
@@ -204,8 +205,8 @@ public class ResponseCreator{
                     return;
                 }
                     
-                // check if the request is conditional
-                // retrieve if-modified-since header if exists
+                // check if the request is conditional and retrieve 
+                // if-modified-since header if exists
                 long ifModifiedSince = requestBean.getIfModifiedSince();
                 if(ifModifiedSince != 0 && lastModified == ifModifiedSince){
                     respCode = "_304";
@@ -215,16 +216,15 @@ public class ResponseCreator{
                     return;
                 }
                                 
-                // client does not have this resource
-                // read from the cache, if exists
+                // ************* Server cache *************
+                // Browser does not have this resource. Read from the cache, if exists
                 LRUResourceCache lruCache = null;
                 try{
                     lruCache = LRUResourceCache.getCache(contextName);
                     lruCache.getCacheLock().lock();
                     
                     if(lruCache.containsKey(eTag)){
-                        // resource is found in the cache
-                        // read from the cache
+                        // resource is found in the server cache, read from here
                         byte[] cachedResource = lruCache.get(eTag);
                         resourceSize = cachedResource.length;
                         responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
@@ -235,8 +235,7 @@ public class ResponseCreator{
                         responseBean.setresponseCacheTag("[Cache]");
                         resourcesReadFromCache++;
                     } else {
-                        // client does not have this resource
-                        // nor does cache; read from disk
+                        // client does not have this resource nor does cache; read from disk
                         FileInputStream fis = new FileInputStream(f);
                         resourceSize = (int)f.length();
 
@@ -261,6 +260,7 @@ public class ResponseCreator{
                 }
             }               
             
+            // ************* Compression *************
             // if compression is enabled and if the resource is compressable, do so now
             if(conf.getCompression() && isCompressable(resourceType)){
                 compress(responseBodyByteBuffer.array());
@@ -273,8 +273,8 @@ public class ResponseCreator{
             respCode = "_404";
             prepareErrorResponseBody(respCode, resource);
             return;
-        } catch (Exception ioe) {
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
+        } catch (Exception e) {
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
             respCode = "_500";
             prepareErrorResponseBody(respCode, resource);
             return;
