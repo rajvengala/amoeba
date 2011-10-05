@@ -5,12 +5,9 @@
 
 package in.uglyhunk.amoeba.server;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.Charset;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,39 +24,37 @@ public class RequestProcessor implements Runnable {
 
     public void run() {
         SelectionKey key = null;
+        ResponseBean responseBean = null;
+        RequestBean requestBean = null;
         try {
-            RequestBean reqBean = requestQueue.take();
-            byte[] readBufferArray = reqBean.getRawRequestBytes();
-            key = reqBean.getSelectionKey();
+            requestBean = requestQueue.take();
+            byte[] readBufferArray = requestBean.getRawRequestBytes();
+            key = requestBean.getSelectionKey();
             
             ByteBuffer readBuffer = ByteBuffer.allocate(readBufferArray.length);
             readBuffer.put(readBufferArray);
             readBuffer.flip();
 
             String rawRequest = charset.decode(readBuffer).toString();
-            parseRequest(reqBean, rawRequest);
+            parseRequest(requestBean, rawRequest);
                                     
-            ResponseBean response = new ResponseCreator(reqBean).process();
-            responseMap.put(key, response);
-                 
-            key.interestOps(SelectionKey.OP_WRITE);
-            key.selector().wakeup();
-            
-        } catch (UnsupportedEncodingException use){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(use), use);
-        } catch(IOException ioe){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
+            responseBean = new ResponseCreator(requestBean).process();
+            responseMap.put(key, responseBean);
         } catch(InterruptedException ie){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
-        } catch(ParseException pe){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(pe), pe);
-        } catch(NoSuchAlgorithmException nsae){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(nsae), nsae);
+            // This occurs when requestBean is being taken from the requestQueue.
+            // If this request is not removed, application gets stuck with more
+            // requests. In case of error, this has to be taken off the queue
+//            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
+//            reqBean = requestQueue.take();
+//            key = reqBean.getSelectionKey();
+//            throw InterruptedException;
         } catch(Exception e){
             Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
-        } finally{
-            // response should be 500 Internal Server Error
-           
+            responseBean = new ResponseCreator(requestBean).processError();
+            responseMap.put(key, responseBean);
+        } finally {
+            key.interestOps(SelectionKey.OP_WRITE);
+            key.selector().wakeup();
         }
     }
 

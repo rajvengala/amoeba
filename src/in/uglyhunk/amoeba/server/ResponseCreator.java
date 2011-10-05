@@ -28,14 +28,21 @@ import java.util.HashMap;
  */
 public class ResponseCreator{
 
-    ResponseCreator(RequestBean request) throws IOException {
-        this.request = request;
-        this.response = new ResponseBean();
-        response.setSocketChannel((SocketChannel)request.getSelectionKey().channel());
-        response.setSelectionKey(request.getSelectionKey());
+    ResponseCreator(RequestBean request) {
+        this.requestBean = request;
+        this.responseBean = new ResponseBean();
+        responseBean.setSocketChannel((SocketChannel)request.getSelectionKey().channel());
+        responseBean.setSelectionKey(request.getSelectionKey());
+    }
+    
+    public ResponseBean processError(){
+        respCode = "_500";
+        prepareErrorResponseBody(respCode, "");
+        prepareResponseHeaders();
+        return responseBean;
     }
 
-    public ResponseBean process() throws Exception {
+    public ResponseBean process()  {
             // If virtual host is set to true in njws.conf
             // append host string value from the http request header
             // to the document root and then append the requested
@@ -49,45 +56,47 @@ public class ResponseCreator{
             // 1. /
             // 2. /image.gif
             // 3. /CLASSES/getStockQuote
-            String resource = request.getResource();
+            String resource = requestBean.getResource();
             if(resource.equals("/"))
                 resource = "/index.html";
         
-            if(resource.contains("."))
+            if(resource.contains(".")){
                 resourceType = resource.split("\\.")[1];
-            else
+            } else {
+                // resouce type is not obvious from the file extension
+                // assume the resource type as html and set content type accordingly
                 resourceType = "html";
+            }
             
             String documentRoot = conf.getDocumentRoot();
             // if virtual host is enabled
             // context name is hostname
             // else context name is default
             if(conf.isVirtualHost()) 
-                contextName = request.getHost();
+                contextName = requestBean.getHost();
             else
                 contextName = Configuration.getDefaultContext();
             
             // resourcePath will be in one of the follows formats
-            // if virtual host is disabled
-            // 1. %DOC_ROOT%/default/CLASSES/getStockQuote
-            // 2. %DOC_ROOT%/default/CLASSES/image.gif
-            
-            // if virtual host is enabled
-            // 3. %DOC_ROOT%/hostname/CLASSES/getStockQuote
-            // 4. %DOC_ROOT%/hostname/CLASSES/image.gif
+            // If virtual host is disabled
+            //  + <DOC_ROOT>/default/CLASSES/getStockQuote
+            //  + <DOC_ROOT>/default/image.gif
+            // If virtual host is enabled
+            //  + <DOC_ROOT>/<hostname_in_request_header>/CLASSES/getStockQuote
+            //  + <DOC_ROOT>/<hostname_in_request_header>/image.gif
             resourcePath.append(documentRoot).append(File.separator).append(contextName).append(resource);
-            response.setAbsoluteResource(resourcePath.toString());
+            responseBean.setAbsoluteResource(resourcePath.toString());
 
             // if in maintenance, serve 503 response for all the requests
             if(conf.isMaintenance()){
                 respCode = "_503";
-                setErrorResponse(respCode, resource);
+                prepareErrorResponseBody(respCode, resource);
             } else {
                 // non-maintenance mode operation
                 prepareResponseBody(resource);
             }
             prepareResponseHeaders();
-            return response;
+            return responseBean;
     }
 
     private void prepareResponseBody(String resource) {
@@ -95,9 +104,11 @@ public class ResponseCreator{
             ByteBuffer responseBodyByteBuffer = null;
             String dynClassTag = Configuration.getDynamicClassTag();
             
-            // ResourcePath format - <DOC_ROOT>/<CONTEXT>/CLASSES/getStockQuote
-            // If the resourcePath absolute path contains "CLASSES" string,
-            // pass them to user classes in CLASSES sub-directory
+            // ResourcePath format - <DOC_ROOT>/<hostname_in_request_header>/CLASSES/getStockQuote
+            // If the resourcePath contains "CLASSES" string,
+            // pass them to context classes in CLASSES sub-directory
+            
+            // ************* Dynamic request *************
             if(resourcePath.toString().contains(dynClassTag)) {
                 DynamicRequest dynamicReq = null;
                 // Extracts target class name from the resourcePath
@@ -151,52 +162,56 @@ public class ResponseCreator{
                 }
                 
                 // Let the dynamic class process the request
-                dynamicReq.process(request, response);
+                // user saves the content of the response
+                // in responseBean
+                dynamicReq.process(requestBean, responseBean);
                 
-                String rawBody = response.getRespBody();
+                // retreive the response body set by the user
+                // from the responseBean instance
+                String rawBody = responseBean.getRespBody();
                 byte rawBodyBytes[] = rawBody.getBytes(charset);
                 responseBodyByteBuffer = ByteBuffer.allocate(rawBodyBytes.length);
                 responseBodyByteBuffer.put(rawBodyBytes);
                 responseBodyByteBuffer.flip();
-                
+                                
                 respContentLength = responseBodyByteBuffer.limit();
-                if(response.getContentType() == null){
-                    response.setContentType("text/html; charset=UTF-8");
+                if(responseBean.getContentType() == null){
+                    responseBean.setContentType("text/html; charset=UTF-8");
                 }
-                if(response.getStatusCode() != null){
-                    String statusLine = statusLine("_" + respCode);
-                    response.setStatusLine(statusLine);
-                } else {
+
+                if(responseBean.getStatusCode() == null){
                     respCode = "_200";
                 }
-                response.setresponseCacheTag("[Dynamic]");
+                
+                responseBean.setresponseCacheTag("[Dynamic]");
                 
             } else {
+            // ************* Static resource request *************
                 // if the request is for a static resourcePath
-                // get the resource info from the file system
+                // read the resource contents from the file system
                 File f = new File(resourcePath.toString());
                 lastModified = f.lastModified();
                 
                 // check if the request is conditional,
                 // retrieve eTag header if exists in the request
                 // hearders for thie resource
-                String reqETag = request.getETag();
+                String reqETag = requestBean.getETag();
                 eTag = calculateETag();
                 if(reqETag != null && reqETag.equals(eTag)){
                     respCode = "_304";
                     respContentLength = 0;
-                    response.setBody(null);
+                    responseBean.setBody(null);
                     return;
                 }
                     
                 // check if the request is conditional
                 // retrieve if-modified-since header if exists
-                long ifModifiedSince = request.getIfModifiedSince();
+                long ifModifiedSince = requestBean.getIfModifiedSince();
                 if(ifModifiedSince != 0 && lastModified == ifModifiedSince){
                     respCode = "_304";
                     respContentLength = 0;
-                    response.setBody(null);
-                    response.setresponseCacheTag("[Conditional]");
+                    responseBean.setBody(null);
+                    responseBean.setresponseCacheTag("[Conditional]");
                     return;
                 }
                                 
@@ -217,7 +232,7 @@ public class ResponseCreator{
                         responseBodyByteBuffer.flip();
                         respCode = "_200";
                         respContentLength = resourceSize;
-                        response.setresponseCacheTag("[Cache]");
+                        responseBean.setresponseCacheTag("[Cache]");
                         resourcesReadFromCache++;
                     } else {
                         // client does not have this resource
@@ -238,7 +253,7 @@ public class ResponseCreator{
                         if(isCacheable(resourceType)){
                             lruCache.put(eTag, responseBodyByteBuffer.array());
                         }
-                        response.setresponseCacheTag("[Disk]");
+                        responseBean.setresponseCacheTag("[Disk]");
                         resourcesReadFromDisk++;
                     }
                 } finally{
@@ -251,54 +266,48 @@ public class ResponseCreator{
                 compress(responseBodyByteBuffer.array());
             } else {
                 // either compression is disabled or resource is not compressable
-                response.setBody(responseBodyByteBuffer);
+                responseBean.setBody(responseBodyByteBuffer);
             }
         } catch (FileNotFoundException fnfe) {
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
             respCode = "_404";
-            setErrorResponse(respCode, resource);
+            prepareErrorResponseBody(respCode, resource);
             return;
         } catch (Exception ioe) {
             Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
             respCode = "_500";
-            setErrorResponse(respCode, resource);
+            prepareErrorResponseBody(respCode, resource);
             return;
         }
         return;
     }
 
-    private void prepareResponseHeaders() throws Exception {
-        // if status code is not set by dynamic request handler,
-        // set it here
-        if(response.getStatusLine() == null){
-            String statusLine = statusLine(respCode);
-            response.setStatusCode(respCode.split("_")[1]);
-            response.setStatusLine(statusLine);
-        }
+    private void prepareResponseHeaders() {
+        // set the status line based on response code;
+        String statusLine = statusLine(respCode);
+        responseBean.setStatusCode(respCode.split("_")[1]);
+        responseBean.setStatusLine(statusLine);
         
-        // set last modified value and etag value
-        // if resource is cacheable
+        // set last modified value and etag value, if resource is cacheable
         if(isCacheable(resourceType)){
-            response.setLastModified(lastModified);
-            response.setETag(eTag);
+            responseBean.setLastModified(lastModified);
+            responseBean.setETag(eTag);
         }
         
-        // if content type is not set by dynamic request handler,
-        // set it here
-        if(response.getContentType() == null){
+        // if content type is not set by dynamic request handler, set it here
+        if(responseBean.getContentType() == null){
             String contentType = contentType(resourceType);
-            response.setContentType(contentType);
+            responseBean.setContentType(contentType);
         }
         
         if(respContentLength != 0){
-            response.setContentLength(respContentLength + "");
-            // if compression is enabled and resource
-            // is compressable, do it
+            responseBean.setContentLength(respContentLength + "");
+            // if compression is enabled and resource is compressable, do it
             if(conf.getCompression() && isCompressable(resourceType)){
-                response.setContentEncoding("gzip");
+                responseBean.setContentEncoding("gzip");
             }
         }
-        response.setServer(Configuration.getSeverHeader());
+        responseBean.setServer(Configuration.getSeverHeader());
         return;
     }
 
@@ -350,13 +359,13 @@ public class ResponseCreator{
         return true;
     }
 
-    private void setErrorResponse(String respCode, String resource) {
+    private void prepareErrorResponseBody(String respCode, String resource) {
         try{
             File f = new File(conf.getErrorPageFolder() + File.separator + resource);
             if(!f.exists()){
                 f = new File(conf.getErrorPageFolder() + File.separator + respCode.split("_")[1] + ".html");
             }
-
+            
             FileInputStream fis = new FileInputStream(f);
             int fileLength = (int)f.length();
 
@@ -372,10 +381,11 @@ public class ResponseCreator{
                 compress(responseBodyByteBuffer.array());
             } else {
                 respContentLength = fileLength;
-                response.setresponseCacheTag("[Disk]");
-                resourcesReadFromDisk++;
-                response.setBody(responseBodyByteBuffer);
+                responseBean.setBody(responseBodyByteBuffer);
             }
+            
+            responseBean.setresponseCacheTag("[Disk]");
+            resourcesReadFromDisk++;
         } catch(IOException ioe){
             Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
@@ -394,7 +404,7 @@ public class ResponseCreator{
         zippedResponseByteBuffer.put(zippedStream.toByteArray());
         zippedResponseByteBuffer.flip();
         
-        response.setBody(zippedResponseByteBuffer);
+        responseBean.setBody(zippedResponseByteBuffer);
     }
      
     public static long getResourcesReadFromDisk(){
@@ -407,8 +417,8 @@ public class ResponseCreator{
     
     private String respCode;
     private int respContentLength;
-    private RequestBean request;
-    private ResponseBean response;
+    private RequestBean requestBean;
+    private ResponseBean responseBean;
     private String resourceType;
     private long lastModified;
     private StringBuilder resourcePath;
