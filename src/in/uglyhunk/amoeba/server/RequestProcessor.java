@@ -193,6 +193,8 @@ public class RequestProcessor implements Runnable {
                     break;
                     
                 case RANGE:
+                    // Range: bytes 0-
+                    // Range: bytes 200-700
                     tokens = line.split(":");
                     if(tokens.length == 2) {
                         requestBean.setRange(tokens[1]);

@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.xml.bind.DatatypeConverter;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
+import java.nio.MappedByteBuffer;
 import java.util.HashMap;
 
 /**
@@ -238,22 +239,59 @@ public class ResponseCreator{
                         // client does not have this resource nor does cache; read from disk
                         FileInputStream fis = new FileInputStream(f);
                         resourceSize = (int)f.length();
-
                         FileChannel fc = fis.getChannel();
-                        responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
-                        fc.read(responseBodyByteBuffer);
-                        responseBodyByteBuffer.flip();
-                        respCode = "_200";
-                        respContentLength = resourceSize;
-                        fis.close();
+                        
+                        // if file size is greater than 1 MB, send partial
+                        // resource and let the browser request for the
+                        // remaining parts. This is useful in pausing and resuming
+                        // large file downloads and progressive streaming
+                        if(resourceSize > Configuration.getLargeFileStartSize()){
+                            // use memory mapped file to read and send chunks of the file
+                            // send first 500 KB of the file as response first time
+                            String rangeHeader = requestBean.getRange();
+                            int filePosition = 0;
+                            int fileSize = Configuration.getPartialResponseSize();
+                            responseBean.setAcceptRanges("bytes");
+                            if(rangeHeader == null){
+                                respCode = "_200";
+                            } else {
+                                respCode = "_206";
+                                // Range request header format
+                                // Range: bytes 500-999, -2 (or) 
+                                // Range: bytes 500-999 (or) 
+                                // Range: bytes 500-
+                                // range[2] = 500-999 or 500-999 or 500-
+                                String range = rangeHeader.split("bytes")[1];
+                                filePosition = Integer.parseInt(range.split("-")[0]);
+                                if(filePosition + fileSize > resourceSize){
+                                    fileSize = resourceSize = filePosition;
+                                }
+                            }
+                            
+                            MappedByteBuffer mappedBuffer = fc.map(FileChannel.MapMode.READ_ONLY, 
+                                                                            filePosition, 
+                                                                            fileSize);
+                            responseBodyByteBuffer = ByteBuffer.allocate(fileSize);
+                            mappedBuffer.put(responseBodyByteBuffer);
+                            responseBodyByteBuffer.flip();
+                            responseBean.setresponseCacheTag("[MMap]");
+                        } else {
+                            responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
+                            fc.read(responseBodyByteBuffer);
+                            responseBodyByteBuffer.flip();
+                            respCode = "_200";
+                            respContentLength = resourceSize;
+                            fis.close();
+                            responseBean.setresponseCacheTag("[Disk]");
+                            resourcesReadFromDisk++;
+                        }
+                        // close file channel
                         fc.close();
                         
                         // save the resource in the cache
                         if(isCacheable(resourceType)){
                             lruCache.put(eTag, responseBodyByteBuffer.array());
                         }
-                        responseBean.setresponseCacheTag("[Disk]");
-                        resourcesReadFromDisk++;
                     }
                 } finally{
                     lruCache.getCacheLock().unlock();

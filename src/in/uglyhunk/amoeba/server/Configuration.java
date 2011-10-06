@@ -13,6 +13,20 @@ import java.util.logging.Logger;
  * @author rvengala
  */
 public class Configuration {
+
+    /**
+     * @return the largeFileMinSize
+     */
+    public static int getLargeFileStartSize() {
+        return largeFileStartSize;
+    }
+
+    /**
+     * @return the partialResponseSize
+     */
+    public static int getPartialResponseSize() {
+        return partialResponseSize;
+    }
     
     private Configuration(){}
     
@@ -377,5 +391,7 @@ public class Configuration {
     private static final String CONTEXT_CONF = "context.conf";
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
+    private static final int largeFileStartSize = 1024 * 1024 * 1024; // 1 MB
+    private static final int partialResponseSize = 500 * 1024 * 1024; // 500 KB
     private static Configuration conf;
 }

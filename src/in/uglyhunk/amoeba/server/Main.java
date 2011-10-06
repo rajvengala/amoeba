@@ -521,6 +521,8 @@ public class Main {
                 String server = respBean.getServer();
                 String statusCode = respBean.getStatusCode();
                 String resource = respBean.getAbsoluteResource();
+                String acceptRanges = respBean.getAcceptRanges();
+                String contentRange = respBean.getContentRange();
                 long lastModified = respBean.getLastModified();
                 String respCacheTag = respBean.getresponseCacheTag();
                 if (respCacheTag == null) {
@@ -544,6 +546,13 @@ public class Main {
                 // Content-Length header
                 if (contentLength != null) {
                     respHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
+                }
+                
+                // Accept-Ranges headers
+                if(acceptRanges != null){
+                    respHeaders.append("Accept-Ranges: ").append("bytes").append(Utilities.getHTTPEOL());
+                    // format -> Content-Range: bytes 500-1000/1200
+                    respHeaders.append("Content-Range: bytes ").append(contentRange).append(Utilities.getHTTPEOL());
                 }
 
                 // Contet-Encoding header
