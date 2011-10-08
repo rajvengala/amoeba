@@ -258,22 +258,7 @@ public class ResponseBean {
     public void setMappedByteBuffer(MappedByteBuffer mappedByteBuffer) {
         this.mappedByteBuffer = mappedByteBuffer;
     }
-    
-    
-    /**
-     * @return the isLargeFile
-     */
-    public boolean isLargeFile() {
-        return largeFile;
-    }
-
-    /**
-     * @param isLargeFile the isLargeFile to set
-     */
-    public void setLargeFile(boolean largeFile) {
-        this.largeFile = largeFile;
-    }
-    
+        
     private String statusCode;
     private String statusLine;
     private String contentType;
@@ -292,6 +277,4 @@ public class ResponseBean {
     private SelectionKey selectionKey;
     private String responseCacheTag;
     private MappedByteBuffer mappedByteBuffer;
-    private boolean largeFile;
-
 }

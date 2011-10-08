@@ -617,11 +617,13 @@ public class Main {
                 int totalBytesSent = socketChannel.write(respByteBuffer);
 
                 String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
-                logger.log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ", new Object[]{clientAddr, 
-                                                                                            resource,
-                                                                                            statusCode, 
-                                                                                            totalBytesSent, 
-                                                                                            respCacheTag});
+                logger.log(Level.FINER, 
+                            "{0} - {1} - {2} - {3} bytes {4} ", 
+                            new Object[]{clientAddr, 
+                            resource,
+                            statusCode, 
+                            totalBytesSent, 
+                            respCacheTag});
             } else {
                 key.interestOps(SelectionKey.OP_WRITE);
                 key.selector().wakeup();
@@ -648,6 +650,7 @@ public class Main {
      */
     public static void bulkWriteChannel(SelectionKey key){
         try{
+            boolean eof = false;
             SocketChannel socketChannel = (SocketChannel) key.channel();
             ResponseBean responseBean = responseMap.get(key);    
             String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
@@ -706,30 +709,38 @@ public class Main {
             } else {
                 byte[] partialContent = new byte[Configuration.getPartialResponseSize()];
                 MappedByteBuffer mappedByteBuffer = responseBean.getMappedByteBuffer();
-                
-                int bodySize = Math.min (mappedByteBuffer.remaining(), partialContent.length);
-                mappedByteBuffer.get(partialContent, 0, bodySize);
-                ByteBuffer responseBuffer = ByteBuffer.allocate(partialContent.length);
-                responseBuffer.put(partialContent);
-                responseBuffer.flip();
-                totalBytesSent = socketChannel.write(responseBuffer);
+                if(mappedByteBuffer.hasRemaining()){
+                    int bodySize = Math.min (mappedByteBuffer.remaining(), partialContent.length);
+                    mappedByteBuffer.get(partialContent, 0, bodySize);
+                    ByteBuffer responseBuffer = ByteBuffer.allocate(partialContent.length);
+                    responseBuffer.put(partialContent);
+                    responseBuffer.flip();
+                    totalBytesSent = socketChannel.write(responseBuffer);
+                    // save the current state of the mappedByteBuffer in responseBean
+                    responseBean.setMappedByteBuffer(mappedByteBuffer);
+                } else {
+                    eof = true;
+                }
             }
             
-            Configuration.getLogger().log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ", new Object[]{clientAddr, 
-                                                                                    resource,
-                                                                                    statusCode, 
-                                                                                    totalBytesSent, 
-                                                                                    respCacheTag});
-
-            
-            key.interestOps(SelectionKey.OP_WRITE);
-            key.selector().wakeup();
                     
             // add the SelectionKey reference to idleKeyList
             // this will be processed in Main as part
             // of even processing loop
-            //idleSelectionKeyList.add(key);
+            if(!eof){
+                Configuration.getLogger().log(Level.FINER, 
+                                            "{0} - {1} - {2} - {3} bytes {4} ", 
+                                            new Object[]{clientAddr, 
+                                            resource,
+                                            statusCode, 
+                                            totalBytesSent, 
+                                            respCacheTag});
+                key.interestOps(SelectionKey.OP_WRITE);
+                key.selector().wakeup();
             
+            } else {
+                idleSelectionKeyList.add(key);
+            }
         } catch(IOException ioe){
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         }

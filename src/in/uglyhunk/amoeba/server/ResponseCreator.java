@@ -279,7 +279,6 @@ public class ResponseCreator{
                             responseBean.setMappedByteBuffer(mappedByteBuffer);
                             RuntimeData.getSelectionKeyLargeFileMap().put(responseBean.getSelectionKey(), Boolean.FALSE);
                         } else {
-                            responseBean.setLargeFile(false);
                             responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
                             fc.read(responseBodyByteBuffer);
                             responseBodyByteBuffer.flip();
