@@ -6,6 +6,7 @@
 package in.uglyhunk.amoeba.server;
 
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
@@ -207,11 +208,11 @@ public class ResponseBean {
         this.eTag = eTag;
     }
     
-    void setresponseCacheTag(String tag){
+    void setResponseCacheTag(String tag){
         this.responseCacheTag = tag;
     }
     
-    String getresponseCacheTag(){
+    String getResponseCacheTag(){
         return responseCacheTag;
     }
     
@@ -243,6 +244,36 @@ public class ResponseBean {
         this.AcceptRanges = AcceptRanges;
     }
         
+    
+    /**
+     * @return the mappedByteBuffer
+     */
+    public MappedByteBuffer getMappedByteBuffer() {
+        return mappedByteBuffer;
+    }
+
+    /**
+     * @param mappedByteBuffer the mappedByteBuffer to set
+     */
+    public void setMappedByteBuffer(MappedByteBuffer mappedByteBuffer) {
+        this.mappedByteBuffer = mappedByteBuffer;
+    }
+    
+    
+    /**
+     * @return the isLargeFile
+     */
+    public boolean isLargeFile() {
+        return largeFile;
+    }
+
+    /**
+     * @param isLargeFile the isLargeFile to set
+     */
+    public void setLargeFile(boolean largeFile) {
+        this.largeFile = largeFile;
+    }
+    
     private String statusCode;
     private String statusLine;
     private String contentType;
@@ -260,7 +291,7 @@ public class ResponseBean {
     private String absoluteResource;
     private SelectionKey selectionKey;
     private String responseCacheTag;
+    private MappedByteBuffer mappedByteBuffer;
+    private boolean largeFile;
 
-   
-    
 }

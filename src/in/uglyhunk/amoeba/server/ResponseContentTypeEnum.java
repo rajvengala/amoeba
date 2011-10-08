@@ -24,7 +24,9 @@ public enum ResponseContentTypeEnum {
     GIF("image/gif", true, false, true),
     ZIP("application/zip", true, false, false),
     GZ("application/x-gzip", true, false, false),
-    SWF("application/x-shockwave-flash", true, false, true);
+    SWF("application/x-shockwave-flash", true, false, true),
+    MP4("video/mp4",true,false,false),
+    AVI("video/x-msvideo",true,false,false);
 
     ResponseContentTypeEnum(String contentType, boolean isBinary, boolean isCompressable, boolean isCacheable) {
         this.contentType = contentType;

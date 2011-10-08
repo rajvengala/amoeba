@@ -85,7 +85,7 @@ public class ResponseCreator{
             // If virtual host is enabled
             //  + <DOC_ROOT>/<hostname_in_request_header>/CLASSES/getStockQuote
             //  + <DOC_ROOT>/<hostname_in_request_header>/image.gif
-            resourcePath.append(documentRoot).append(File.separator).append(contextName).append(resource);
+            resourcePath.append(documentRoot).append("/").append(contextName).append(resource);
             responseBean.setAbsoluteResource(resourcePath.toString());
 
             // if in maintenance, serve 503 response for all the requests
@@ -184,7 +184,7 @@ public class ResponseCreator{
                     respCode = "_200";
                 }
                 
-                responseBean.setresponseCacheTag("[Dynamic]");
+                responseBean.setResponseCacheTag("[Dynamic]");
                 
             } else {
             // ************* Static resource request *************
@@ -213,7 +213,7 @@ public class ResponseCreator{
                     respCode = "_304";
                     respContentLength = 0;
                     responseBean.setBody(null);
-                    responseBean.setresponseCacheTag("[Conditional]");
+                    responseBean.setResponseCacheTag("[Conditional]");
                     return;
                 }
                                 
@@ -231,67 +231,70 @@ public class ResponseCreator{
                         responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
                         responseBodyByteBuffer.put(cachedResource);
                         responseBodyByteBuffer.flip();
-                        respCode = "_200";
+                        
                         respContentLength = resourceSize;
-                        responseBean.setresponseCacheTag("[Cache]");
+                        responseBean.setResponseCacheTag("[Cache]");
                         resourcesReadFromCache++;
                     } else {
                         // client does not have this resource nor does cache; read from disk
                         FileInputStream fis = new FileInputStream(f);
                         resourceSize = (int)f.length();
                         FileChannel fc = fis.getChannel();
-                        
-                        // if file size is greater than 1 MB, send partial
-                        // resource and let the browser request for the
-                        // remaining parts. This is useful in pausing and resuming
-                        // large file downloads and progressive streaming
+                                                
+                        // if file size is greater than 1 MB, let a 
+                        // seperate thread handle the data serving part
                         if(resourceSize > Configuration.getLargeFileStartSize()){
-                            // use memory mapped file to read and send chunks of the file
-                            // send first 500 KB of the file as response first time
+                            int fileStartPosition = 0;
+                            int fileSize = resourceSize;
+                            int fileEndPosition = resourceSize-1;
                             String rangeHeader = requestBean.getRange();
-                            int filePosition = 0;
-                            int fileSize = Configuration.getPartialResponseSize();
-                            responseBean.setAcceptRanges("bytes");
-                            if(rangeHeader == null){
-                                respCode = "_200";
-                            } else {
-                                respCode = "_206";
+                            respCode="_206";
+                            if(rangeHeader != null){
                                 // Range request header format
                                 // Range: bytes 500-999, -2 (or) 
                                 // Range: bytes 500-999 (or) 
                                 // Range: bytes 500-
-                                // range[2] = 500-999 or 500-999 or 500-
+                                
+                                // eg: 500-999 or 500-999, or 500-999, -2
                                 String range = rangeHeader.split("bytes")[1];
-                                filePosition = Integer.parseInt(range.split("-")[0]);
-                                if(filePosition + fileSize > resourceSize){
-                                    fileSize = resourceSize = filePosition;
-                                }
-                            }
+                                // eg: 500
+                                fileStartPosition = Integer.parseInt(range.split("-")[0]);
+                                fileEndPosition = Integer.parseInt(range.split("-")[1]);
+                                fileSize = resourceSize - fileStartPosition;
+                            } 
                             
-                            MappedByteBuffer mappedBuffer = fc.map(FileChannel.MapMode.READ_ONLY, 
-                                                                            filePosition, 
-                                                                            fileSize);
-                            responseBodyByteBuffer = ByteBuffer.allocate(fileSize);
-                            mappedBuffer.put(responseBodyByteBuffer);
-                            responseBodyByteBuffer.flip();
-                            responseBean.setresponseCacheTag("[MMap]");
+                            responseBean.setAcceptRanges("bytes");
+                            respContentLength = fileSize;
+                            responseBean.setResponseCacheTag("[MMap]");
+                            
+                            // Content-Range: bytes 500-1000/1200
+                            responseBean.setContentRange("bytes " + 
+                                                        fileStartPosition + "-" + 
+                                                        fileEndPosition + "/" + 
+                                                        resourceSize);
+                            
+                            MappedByteBuffer mappedByteBuffer = fc.map(FileChannel.MapMode.READ_ONLY, 
+                                                                        fileStartPosition, 
+                                                                        fileSize);
+                            responseBean.setMappedByteBuffer(mappedByteBuffer);
+                            RuntimeData.getSelectionKeyLargeFileMap().put(responseBean.getSelectionKey(), Boolean.FALSE);
                         } else {
+                            responseBean.setLargeFile(false);
                             responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
                             fc.read(responseBodyByteBuffer);
                             responseBodyByteBuffer.flip();
                             respCode = "_200";
                             respContentLength = resourceSize;
                             fis.close();
-                            responseBean.setresponseCacheTag("[Disk]");
+                            responseBean.setResponseCacheTag("[Disk]");
                             resourcesReadFromDisk++;
+                            
+                                // save the resource in the cache
+                            if(isCacheable(resourceType)){
+                                lruCache.put(eTag, responseBodyByteBuffer.array());
+                            }
                         }
-                        // close file channel
-                        fc.close();
-                        
-                        // save the resource in the cache
-                        if(isCacheable(resourceType)){
-                            lruCache.put(eTag, responseBodyByteBuffer.array());
-                        }
+                        fc.close();     // close file channel
                     }
                 } finally{
                     lruCache.getCacheLock().unlock();
@@ -422,7 +425,7 @@ public class ResponseCreator{
                 responseBean.setBody(responseBodyByteBuffer);
             }
             
-            responseBean.setresponseCacheTag("[Disk]");
+            responseBean.setResponseCacheTag("[Disk]");
             resourcesReadFromDisk++;
         } catch(IOException ioe){
             Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);

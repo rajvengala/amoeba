@@ -40,6 +40,7 @@ public class RequestProcessor implements Runnable {
                                     
             responseBean = new ResponseCreator(requestBean).process();
             responseMap.put(key, responseBean);
+        
         } catch(InterruptedException ie){
             // This occurs when requestBean is being taken from the requestQueue.
             // If this request is not removed, application gets stuck with more

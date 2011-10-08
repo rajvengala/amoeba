@@ -28,6 +28,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -298,8 +299,8 @@ public class Main {
         RuntimeData.setIdleSelectionKeyList(new ArrayList<SelectionKey>());
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
+        RuntimeData.setSelectionKeyLargeFileMap(new HashMap<SelectionKey, Boolean>());
     }
-
     
     /**
      * requestProcessingThreadPool - Each thread in the pool takes the request from the requestQueue and saves the
@@ -387,7 +388,8 @@ public class Main {
             selectionKeyQueue = RuntimeData.getSelectionKeyQueue();
             channelTimeout = conf.getIdleChannelTimeout(); 
             idleSelectionKeyList = RuntimeData.getIdleSelectionKeyList();
-
+            selectionKeyLargeFileMap = RuntimeData.getSelectionKeyLargeFileMap();
+                    
             while (true) {
                 // wait for an event on one of the registered channels
                 selector.select();
@@ -404,7 +406,11 @@ public class Main {
                         } else if (key.isReadable()) {
                             readDataFromChannel(key);
                         } else if (key.isWritable()) {
-                            writeToChannel(key);
+                            if(selectionKeyLargeFileMap.containsKey(key)){
+                                bulkWriteChannel(key);
+                            } else {
+                                writeToChannel(key);
+                            }
                         }
                     }
                 }
@@ -413,10 +419,11 @@ public class Main {
                 for(SelectionKey key : idleSelectionKeyList){
                     SocketChannel socketChannel = (SocketChannel)key.channel();
                     socketChannel.close();
-                    activeChannelsCount--;
                     key.cancel();
+                    activeChannelsCount--;
                 }
                 idleSelectionKeyList.clear();
+                
             }
         } catch(ClosedChannelException cce){
             logger.log(Level.SEVERE, Utilities.stackTraceToString(cce), cce);
@@ -487,18 +494,12 @@ public class Main {
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
-            try {
-                logger.log(Level.WARNING, ioe.toString(), ioe);
-                key.cancel();
-                socketChannel.close();
-            } catch (IOException ioe2) {
-                logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
-            }
+            logger.log(Level.WARNING, ioe.toString(), ioe);
+            idleSelectionKeyList.add(key);
+            selectionKeyTimestampMap.remove(key);
             return;
         } catch (InterruptedException ie) {
             logger.log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
-        } finally{
-            activeChannelsCount--;
         }
     }
 
@@ -508,29 +509,27 @@ public class Main {
         
         try {
             if(key == selectionKeyQueue.peek() && responseMap.containsKey(key)){
-                ResponseBean respBean = responseMap.get(key);
-
+                ResponseBean responseBean = responseMap.get(key);
+        
                 // remove the request timestamp from requestsTimestampQueue
                 // remove the response bean object from responseMap
                 responseMap.remove(selectionKeyQueue.poll());
-
-                socketChannel = respBean.getSocketChannel();
-                String statusLine = respBean.getStatusLine();
-                String contentType = respBean.getContentType();
-                String contentLength = respBean.getContentLength();
-                String server = respBean.getServer();
-                String statusCode = respBean.getStatusCode();
-                String resource = respBean.getAbsoluteResource();
-                String acceptRanges = respBean.getAcceptRanges();
-                String contentRange = respBean.getContentRange();
-                long lastModified = respBean.getLastModified();
-                String respCacheTag = respBean.getresponseCacheTag();
+        
+                socketChannel = responseBean.getSocketChannel();
+                String statusLine = responseBean.getStatusLine();
+                String contentType = responseBean.getContentType();
+                String contentLength = responseBean.getContentLength();
+                String server = responseBean.getServer();
+                String statusCode = responseBean.getStatusCode();
+                String resource = responseBean.getAbsoluteResource();
+                long lastModified = responseBean.getLastModified();
+                String respCacheTag = responseBean.getResponseCacheTag();
                 if (respCacheTag == null) {
                     respCacheTag = "";
                 }
 
-                String eTag = respBean.getETag();
-                ByteBuffer respBodyBuffer = respBean.getBody();
+                String eTag = responseBean.getETag();
+                ByteBuffer respBodyBuffer = responseBean.getBody();
                 if (respBodyBuffer != null) {
                     respBodyBuffer.flip();
                 }
@@ -548,18 +547,11 @@ public class Main {
                     respHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
                 }
                 
-                // Accept-Ranges headers
-                if(acceptRanges != null){
-                    respHeaders.append("Accept-Ranges: ").append("bytes").append(Utilities.getHTTPEOL());
-                    // format -> Content-Range: bytes 500-1000/1200
-                    respHeaders.append("Content-Range: bytes ").append(contentRange).append(Utilities.getHTTPEOL());
-                }
-
                 // Contet-Encoding header
                 if(conf.getCompression()) {
-                    String contentEncoding = respBean.getContentEncoding();
+                    String contentEncoding = responseBean.getContentEncoding();
                     if (contentEncoding != null) {
-                        respHeaders.append("Content-Encoding: ").append(respBean.getContentEncoding()).append(Utilities.getHTTPEOL());
+                        respHeaders.append("Content-Encoding: ").append(responseBean.getContentEncoding()).append(Utilities.getHTTPEOL());
                     }
                 }
 
@@ -644,16 +636,102 @@ public class Main {
         } catch (IOException ioe) {
             // connection abruptly closed
             // cancel the selection key and close the channel
-            try {
-                logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
-                key.cancel();
-                socketChannel.close();
-            } catch (IOException ioe2) {
-                logger.log(Level.WARNING, Utilities.stackTraceToString(ioe2), ioe2);
-            }
+            logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            idleSelectionKeyList.add(key);
+            selectionKeyTimestampMap.remove(key);
             return;
-        } finally {
-            activeChannelsCount--;
+        }
+    }
+
+    /*
+     * 
+     */
+    public static void bulkWriteChannel(SelectionKey key){
+        try{
+            SocketChannel socketChannel = (SocketChannel) key.channel();
+            ResponseBean responseBean = responseMap.get(key);    
+            String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
+            String resource = responseBean.getAbsoluteResource();
+            String respCacheTag = responseBean.getResponseCacheTag();
+            String statusCode = responseBean.getStatusCode();
+            int totalBytesSent = 0;
+            
+            if(!selectionKeyLargeFileMap.get(key).booleanValue()){
+                selectionKeyQueue.poll();
+                selectionKeyTimestampMap.remove(key);
+                selectionKeyLargeFileMap.put(key, Boolean.TRUE);
+            
+                String statusLine = responseBean.getStatusLine();
+                String contentType = responseBean.getContentType();
+                String contentLength = responseBean.getContentLength();
+                String server = responseBean.getServer();
+                String contentRange = responseBean.getContentRange();
+
+                StringBuilder responseHeaders = new StringBuilder();
+
+                // Status line
+                responseHeaders.append(statusLine).append(Utilities.getHTTPEOL());
+
+                // Content-Type header
+                responseHeaders.append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL());
+
+                // Content-Length header
+                if (contentLength != null) {
+                    responseHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
+                }
+
+                // Accept-Ranges headers
+                responseHeaders.append("Accept-Ranges: ").append("bytes").append(Utilities.getHTTPEOL());
+
+                 // format -> Content-Range: bytes 500-1000/1200
+                responseHeaders.append("Content-Range: ").append(contentRange).append(Utilities.getHTTPEOL());
+
+                // Server Header
+                responseHeaders.append("Server: ").append(server).append(Utilities.getHTTPEOL());
+
+                responseHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
+                // Date header
+                //respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis()))).append(Utilities.getHTTPEOL());
+
+                // new line - end of headers
+                responseHeaders.append(Utilities.getHTTPEOL());
+
+                byte headerBytes[] = responseHeaders.toString().getBytes("UTF-8");
+                ByteBuffer responseHeadersBuffer = ByteBuffer.allocate(headerBytes.length);
+                responseHeadersBuffer.put(headerBytes);
+                responseHeadersBuffer.flip();
+
+                totalBytesSent = socketChannel.write(responseHeadersBuffer);
+                
+            } else {
+                byte[] partialContent = new byte[Configuration.getPartialResponseSize()];
+                MappedByteBuffer mappedByteBuffer = responseBean.getMappedByteBuffer();
+                
+                int bodySize = Math.min (mappedByteBuffer.remaining(), partialContent.length);
+                mappedByteBuffer.get(partialContent, 0, bodySize);
+                ByteBuffer responseBuffer = ByteBuffer.allocate(partialContent.length);
+                responseBuffer.put(partialContent);
+                responseBuffer.flip();
+                totalBytesSent = socketChannel.write(responseBuffer);
+            }
+            
+            Configuration.getLogger().log(Level.FINER, "{0} - {1} - {2} - {3} bytes {4} ", new Object[]{clientAddr, 
+                                                                                    resource,
+                                                                                    statusCode, 
+                                                                                    totalBytesSent, 
+                                                                                    respCacheTag});
+
+            
+            key.interestOps(SelectionKey.OP_WRITE);
+            key.selector().wakeup();
+                    
+            // add the SelectionKey reference to idleKeyList
+            // this will be processed in Main as part
+            // of even processing loop
+            //idleSelectionKeyList.add(key);
+            
+        } catch(IOException ioe){
+            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         }
     }
 
@@ -683,4 +761,6 @@ public class Main {
     private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap;
     private static LinkedBlockingQueue<SelectionKey> selectionKeyQueue;
     private static ArrayList<SelectionKey> idleSelectionKeyList;
+    
+    private static HashMap<SelectionKey, Boolean> selectionKeyLargeFileMap;
 }
