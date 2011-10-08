@@ -151,14 +151,14 @@ public class RequestProcessor implements Runnable {
                 case CONNECTION:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        requestBean.setConnection(tokens[1]);
+                        requestBean.setConnection(tokens[1].trim());
                     }
                     break;
 
                 case COOKIE:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        requestBean.setCookie(tokens[1]);
+                        requestBean.setCookie(tokens[1].trim());
                     }
                     break;
                  
@@ -189,16 +189,17 @@ public class RequestProcessor implements Runnable {
                 case REFERER:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        requestBean.setReferer(tokens[1]);
+                        requestBean.setReferer(tokens[1].trim());
                     }
                     break;
                     
                 case RANGE:
-                    // Range: bytes 0-
-                    // Range: bytes 200-700
+                    // Range: bytes=0-
+                    // Range: bytes=200-700
+                    // Range: bytes=200-700, 2-
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        requestBean.setRange(tokens[1]);
+                        requestBean.setRange(tokens[1].trim());
                     }
                     break;
 

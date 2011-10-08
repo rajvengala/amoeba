@@ -248,19 +248,33 @@ public class ResponseCreator{
                             int fileSize = resourceSize;
                             int fileEndPosition = resourceSize-1;
                             String rangeHeader = requestBean.getRange();
-                            respCode="_206";
+                            respCode="_200";
+                            
                             if(rangeHeader != null){
-                                // Range request header format
-                                // Range: bytes 500-999, -2 (or) 
-                                // Range: bytes 500-999 (or) 
-                                // Range: bytes 500-
+                                respCode="_206";
+                                // Range: bytes=500-999, -2 (or) Range: bytes 500-999 (or) Range: bytes 500-
                                 
-                                // eg: 500-999 or 500-999, or 500-999, -2
-                                String range = rangeHeader.split("bytes")[1];
-                                // eg: 500
-                                fileStartPosition = Integer.parseInt(range.split("-")[0]);
-                                fileEndPosition = Integer.parseInt(range.split("-")[1]);
-                                fileSize = resourceSize - fileStartPosition;
+                                // 500-999 (or) 500-, (or) 500-900, -2
+                                String range = rangeHeader.split("=")[1];
+                                
+                                // tokens = {"500", "999"} (or) {"500"} (or) {"500", "900, -2"}                               
+                                String tokens[] = range.split("-");
+                                // 500
+                                fileStartPosition = Integer.parseInt(tokens[0]);
+                                // {"500"}
+                                if(tokens.length == 1){
+                                    fileEndPosition = resourceSize-1;
+                                    fileSize = resourceSize - fileStartPosition;
+                                } else {
+                                    // {"500", "900, -2"}
+                                    if(tokens[1].contains(",")){
+                                        fileEndPosition = Integer.parseInt(tokens[1].split(",")[0]);
+                                    } else {
+                                        // {"500", "999"}
+                                        fileEndPosition = Integer.parseInt(tokens[1]);
+                                    }
+                                    fileSize = fileEndPosition - fileStartPosition + 1;
+                                }
                             } 
                             
                             responseBean.setAcceptRanges("bytes");

@@ -20,7 +20,7 @@ public enum RequestHeadersEnum {
     CONTENT_TYPE ("Content-Type"), 
     CONTENT_LENGTH ("Content-Length"), 
     CACHE_CONTROL ("Cache-Control"),
-    RANGE("RANGE"),
+    RANGE("Range"),
     CONNECTION ("Connection"), 
     COOKIE ("Cookie"), 
     HOST ("Host"), 

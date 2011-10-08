@@ -649,8 +649,8 @@ public class Main {
      * 
      */
     public static void bulkWriteChannel(SelectionKey key){
+        boolean eof = false;
         try{
-            boolean eof = false;
             SocketChannel socketChannel = (SocketChannel) key.channel();
             ResponseBean responseBean = responseMap.get(key);    
             String clientAddr = socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1];
@@ -692,7 +692,7 @@ public class Main {
                 // Server Header
                 responseHeaders.append("Server: ").append(server).append(Utilities.getHTTPEOL());
 
-                responseHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
+                responseHeaders.append("Connection: Close").append(Utilities.getHTTPEOL());
                 // Date header
                 //respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis()))).append(Utilities.getHTTPEOL());
 
@@ -710,7 +710,7 @@ public class Main {
                 byte[] partialContent = new byte[Configuration.getPartialResponseSize()];
                 MappedByteBuffer mappedByteBuffer = responseBean.getMappedByteBuffer();
                 if(mappedByteBuffer.hasRemaining()){
-                    int bodySize = Math.min (mappedByteBuffer.remaining(), partialContent.length);
+                    int bodySize = Math.min(mappedByteBuffer.remaining(), partialContent.length);
                     mappedByteBuffer.get(partialContent, 0, bodySize);
                     ByteBuffer responseBuffer = ByteBuffer.allocate(partialContent.length);
                     responseBuffer.put(partialContent);
@@ -723,7 +723,6 @@ public class Main {
                 }
             }
             
-                    
             // add the SelectionKey reference to idleKeyList
             // this will be processed in Main as part
             // of even processing loop
@@ -740,9 +739,12 @@ public class Main {
             
             } else {
                 idleSelectionKeyList.add(key);
+                selectionKeyLargeFileMap.remove(key);
             }
         } catch(IOException ioe){
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            idleSelectionKeyList.add(key);
+            selectionKeyLargeFileMap.remove(key);
         }
     }
 
