@@ -222,12 +222,12 @@ public class RequestProcessor implements Runnable {
                     // Content-Disposition: form-data; name="myfile"; filename="d=1[1].js"
                     tokens = line.split(":");
                     if(tokens.length == 2){
-                        // "myfile"; filename="d=1[1].js" (or) "myfile"
-                        String paramName = tokens[1].trim().split("name=")[1];
-                        if(paramName.contains(";")){
-                           requestBean.insertIntoMultipartBodyMap(paramName.split(";")[0], null);
+                        // paranName = myfile"; filename="d=1[1].js" (or) myfile"
+                        String paramName = tokens[1].trim().split("name=\"")[1];
+                        if(paramName.contains("\";")){
+                           requestBean.insertIntoMultipartBodyMap(paramName.split("\";")[0], null);
                         } else {
-                            requestBean.insertIntoMultipartBodyMap(paramName, null);
+                            requestBean.insertIntoMultipartBodyMap(paramName.split("\"")[0], null);
                         }
                     }
                     break;
@@ -257,7 +257,7 @@ public class RequestProcessor implements Runnable {
                     if(contentType != null && contentType.contains(Configuration.getMultipartFormEncoding())){
                         String boundary = contentType.split("boundary=")[0];
                         if(!line.equalsIgnoreCase(boundary)){
-                            
+                           
                         }
                     }
             }
