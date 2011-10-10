@@ -38,7 +38,8 @@ public class ResponseCreator{
     
     public ResponseBean processError(){
         respCode = "_500";
-        prepareErrorResponseBody(respCode, "");
+        resourceType = "html";
+        prepareErrorResponseBody(respCode, "_none_");
         prepareResponseHeaders();
         return responseBean;
     }
@@ -56,7 +57,7 @@ public class ResponseCreator{
             // resource will be in one of the following forms
             // 1. /
             // 2. /image.gif
-            // 3. /CLASSES/getStockQuote
+            // 3. /classes/getStockQuote
             String resource = requestBean.getResource();
             if(resource.equals("/"))
                 resource = "/index.html";
@@ -105,9 +106,9 @@ public class ResponseCreator{
             ByteBuffer responseBodyByteBuffer = null;
             String dynClassTag = Configuration.getDynamicClassTag();
             
-            // ResourcePath format - <DOC_ROOT>/<hostname_in_request_header>/CLASSES/getStockQuote
-            // If the resourcePath contains "CLASSES" string,
-            // pass them to context classes in CLASSES sub-directory
+            // ResourcePath format - <DOC_ROOT>/<hostname_in_request_header>/classes/getStockQuote
+            // If the resourcePath contains "clases" string,
+            // pass them to context classes in "classes" sub-directory
             
             // ************* Dynamic request *************
             if(resourcePath.toString().contains(dynClassTag)) {

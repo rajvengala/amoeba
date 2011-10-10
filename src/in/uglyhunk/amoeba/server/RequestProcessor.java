@@ -5,10 +5,10 @@
 
 package in.uglyhunk.amoeba.server;
 
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.charset.Charset;
-import java.text.ParseException;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -35,7 +35,7 @@ public class RequestProcessor implements Runnable {
             readBuffer.put(readBufferArray);
             readBuffer.flip();
 
-            String rawRequest = charset.decode(readBuffer).toString();
+            String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
             parseRequest(requestBean, rawRequest);
                                     
             responseBean = new ResponseCreator(requestBean).process();
@@ -59,7 +59,7 @@ public class RequestProcessor implements Runnable {
         }
     }
 
-    private void parseRequest(RequestBean requestBean, String rawRequest) throws ParseException {
+    private void parseRequest(RequestBean requestBean, String rawRequest) throws Exception {
         requestBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getHTTPEOL());
         
@@ -82,7 +82,17 @@ public class RequestProcessor implements Runnable {
                             requestBean.setResource(temp[0]);
 
                             // query string
-                            requestBean.setQueryString(temp[1]);
+                            String queryString = temp[1];
+                            requestBean.setQueryString(queryString);
+                            
+                            // split query string using "&" as seperator
+                            String[] paramValueMaps = queryString.split(Configuration.getParamSeperator());
+                            for(String paramValueMap : paramValueMaps){
+                                String group[] = paramValueMap.split("=");
+                                String param = URLDecoder.decode(group[0], "UTF-8");
+                                String value = URLDecoder.decode(group[1], "UTF-8");
+                                requestBean.insertIntoQueryStringMap(param, value);
+                            }
                         } else {
                             requestBean.setResource(tokens[1]);
                         }
@@ -130,14 +140,18 @@ public class RequestProcessor implements Runnable {
                 case CONTENT_TYPE:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        requestBean.setContentType(tokens[1]);
+                        // for multipart/form-data, content-type header
+                        // will appear multiple times. In that case,
+                        // consider only the first content-type
+                        if(requestBean.getContentType() != null)
+                            requestBean.setContentType(tokens[1]);
                     }
                     break;
 
                 case CONTENT_LENGTH:
                     tokens = line.split(":");
                     if(tokens.length == 2) {
-                        requestBean.setContentLength(tokens[1]);
+                        requestBean.setContentLength(tokens[1].trim());
                     }
                     break;
 
@@ -202,10 +216,49 @@ public class RequestProcessor implements Runnable {
                         requestBean.setRange(tokens[1].trim());
                     }
                     break;
-
+                    
+                case CONTENT_DISPOSITION:
+                    // Content-Disposition: form-data; name="submitBtn"
+                    // Content-Disposition: form-data; name="myfile"; filename="d=1[1].js"
+                    tokens = line.split(":");
+                    if(tokens.length == 2){
+                        // "myfile"; filename="d=1[1].js" (or) "myfile"
+                        String paramName = tokens[1].trim().split("name=")[1];
+                        if(paramName.contains(";")){
+                           requestBean.insertIntoMultipartBodyMap(paramName.split(";")[0], null);
+                        } else {
+                            requestBean.insertIntoMultipartBodyMap(paramName, null);
+                        }
+                    }
+                    break;
+                    
                 default:
-                    if(line.length() == requestBean.getContentLength()){
-                        requestBean.setBody(line);
+                    // If the post data is "application/x-www-form-urlencoded" encoded
+                    String contentType = requestBean.getContentType();
+                    
+                    if(contentType != null && contentType.contains(Configuration.getFormEcoding())){
+                        if(line.length() == requestBean.getContentLength()){
+                            requestBean.setBody(line);
+                        } else {
+                            break;
+                        }
+
+                        String[] paramValueMaps = line.split(Configuration.getParamSeperator());
+                        for(String paramValueMap : paramValueMaps){
+                            String group[] = paramValueMap.split("=");
+                            String param = URLDecoder.decode(group[0], Configuration.getCharsetName());
+                            String value = URLDecoder.decode(group[1], Configuration.getCharsetName());
+                            requestBean.insertIntoPostBodyMap(param, value);
+                        }
+                        break;
+                    }
+
+                    // If the post data is "multipart/form-data" encoded
+                    if(contentType != null && contentType.contains(Configuration.getMultipartFormEncoding())){
+                        String boundary = contentType.split("boundary=")[0];
+                        if(!line.equalsIgnoreCase(boundary)){
+                            
+                        }
                     }
             }
         }
@@ -220,7 +273,6 @@ public class RequestProcessor implements Runnable {
          return RequestHeadersEnum.NONE;
     }
   
-    private static Charset charset = Utilities.getCharset();
     private static LinkedBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
     private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap = RuntimeData.getResponseMap();
 }

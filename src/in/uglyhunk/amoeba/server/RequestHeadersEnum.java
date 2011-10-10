@@ -27,7 +27,8 @@ public enum RequestHeadersEnum {
     REFERER ("Referer"), 
     IF_MODIFIED_SINCE("If-Modified-Since"),
     IF_NONE_MATCH("If-None-Match"),
-    NONE("NONE");
+    NONE("NONE"),
+    CONTENT_DISPOSITION("Content-Disposition");
 
     RequestHeadersEnum(String requestHeaderName) {
         this.requestHeaderName = requestHeaderName;

@@ -5,6 +5,7 @@
 package in.uglyhunk.amoeba.server;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.logging.Logger;
 
@@ -26,6 +27,41 @@ public class Configuration {
      */
     public static int getPartialResponseSize() {
         return partialResponseSize;
+    }
+
+    /**
+     * @return the QUERY_STRING_SEPERATOR
+     */
+    public static String getParamSeperator() {
+        return PARAM_SEPERATOR;
+    }
+
+    /**
+     * @return the FORM_ENCODING
+     */
+    public static String getFormEcoding() {
+        return FORM_ENCODING;
+    }
+
+    /**
+     * @return the MULTIPART_FORM_ENCODING
+     */
+    public static String getMultipartFormEncoding() {
+        return MULTIPART_FORM_ENCODING;
+    }
+
+    /**
+     * @return the CHARSET
+     */
+    public static String getCharsetName() {
+        return CHARSET_NAME;
+    }
+
+    /**
+     * @return the charset
+     */
+    public static Charset getCharset() {
+        return charset;
     }
     
     private Configuration(){}
@@ -383,12 +419,18 @@ public class Configuration {
     
     // classes dynamic requests are kept in CLASSES folder
     // inside each CONTEXT folder
-    private static final String DYN_CLASS_TAG = "CLASSES"; 
+    private static final String DYN_CLASS_TAG = "classes"; 
     private static final String DEFAULT_CONTEXT = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
     private static final String SERVER_HEADER = "Amoeba 0.1.0";
     private static final String CONF_FILE = "amoeba.conf";
     private static final String CONTEXT_CONF = "context.conf";
+    private static final String PARAM_SEPERATOR = "&";
+    private static final String FORM_ENCODING = "application/x-www-form-urlencoded";
+    private static final String MULTIPART_FORM_ENCODING = "multipart/form-data";
+    private static final String CHARSET_NAME = "UTF-8";
+    private static Charset charset = Charset.forName(CHARSET_NAME);
+
     private static final SimpleDateFormat sdf = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z");
     private static final Logger logger = Logger.getLogger("in.uglyhunk.amoeba");
     private static final int largeFileStartSize = 1024 * 1024; // 1 MB

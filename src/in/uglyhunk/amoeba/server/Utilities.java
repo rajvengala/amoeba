@@ -30,13 +30,8 @@ public class Utilities {
         return HTTP_EOL;
     }
     
-    public static Charset getCharset(){
-        return charset;
-    }
-
     private static final String EOL = System.getProperty("line.separator");
     private static final String HTTP_EOL = "\r\n";
-    private static final Charset charset = Charset.forName("UTF-8");
 }
 
 

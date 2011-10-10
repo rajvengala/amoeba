@@ -6,6 +6,7 @@
 package in.uglyhunk.amoeba.server;
 
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 
 /**
  *
@@ -337,8 +338,45 @@ public class RequestBean {
     /**
      * @param range the range to set
      */
-    public void setRange(String range) {
+    void setRange(String range) {
         this.range = range;
+    }
+    
+    void insertIntoQueryStringMap(String param, String value){
+        queryStringMap.put(param, value);
+    }
+    
+    public HashMap<String, String> getQueryStringMap(){
+        return queryStringMap;
+    }
+    
+    void insertIntoPostBodyMap(String param, String value){
+        postBodyMap.put(param, value);
+    }
+    
+    public HashMap<String, String> getPostBodyMap(){
+        return postBodyMap;
+    }
+    
+    public String getParamValue(String param){
+        // search in query string map
+        if(queryStringMap.containsKey(param)){
+            return queryStringMap.get(param);
+        }
+        
+        // search in post body map
+        if(postBodyMap.containsKey(param)){
+            return postBodyMap.get(param);
+        }
+        return null;
+    }
+    
+    void insertIntoMultipartBodyMap(String param, String value){
+        multiPartBodyMap.put(param, value);
+    }
+    
+    public HashMap<java.lang.String, java.lang.String> getMultiPartBodyMap() {
+        return multiPartBodyMap;
     }
 
     private String method;
@@ -364,4 +402,8 @@ public class RequestBean {
     private long ifModifiedSince;
     private String eTag;
     private byte[] rawRequestBytes;
+    private HashMap<String, String> queryStringMap = new HashMap<String, String>();
+    private HashMap<String, String> postBodyMap = new HashMap<String, String>();
+    private HashMap<String, String> multiPartBodyMap = new HashMap<String, String>();
+
 }
