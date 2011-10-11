@@ -125,15 +125,15 @@ public class Configuration {
     /**
      * @return the njasHome
      */
-    public String getNjasHome() {
-        return njasHome;
+    public String getAmoebaHome() {
+        return amoebaHome;
     }
 
     /**
      * @param aNjasHome the njasHome to set
      */
-    public void setNjasHome(String njasHome) {
-        this.njasHome = njasHome;
+    public void setAmoebaHome(String amoebaHome) {
+        this.amoebaHome = amoebaHome;
     }
 
     /**
@@ -364,9 +364,12 @@ public class Configuration {
      * @return the ERROR_PAGE_FOLDER
      */
     public String getErrorPageFolder() {
-        return getNjasHome() + File.separator + ERROR_PAGE_FOLDER;
+        return getAmoebaHome() + File.separator + ERROR_PAGE_FOLDER;
     }
 
+    public String getTmpFolder(){
+        return getAmoebaHome() + File.separator + TMP_FOLDER;
+    }
     /**
      * @return the SERVER_HEADER
      */
@@ -406,7 +409,7 @@ public class Configuration {
     private int initialCacheSize;
     private static final float cacheLoadFactor = 0.75F;
     private int cacheCapacity;
-    private String njasHome; // environment variable
+    private String amoebaHome; // environment variable
     
     private int idleChannelTimeout; // seconds
     private static final int initialSelectionKeysSize = 200;
@@ -422,6 +425,7 @@ public class Configuration {
     private static final String DYN_CLASS_TAG = "classes"; 
     private static final String DEFAULT_CONTEXT = "default";
     private static final String ERROR_PAGE_FOLDER = "error";
+    private static final String TMP_FOLDER = "tmp"; // default is <AMOEBA_HOME>/tmp
     private static final String SERVER_HEADER = "Amoeba 0.1.0";
     private static final String CONF_FILE = "amoeba.conf";
     private static final String CONTEXT_CONF = "context.conf";

@@ -28,6 +28,7 @@
         <mkdir dir="${dist.dir}/amoeba/lib" />
         <mkdir dir="${dist.dir}/amoeba/conf" />
         <mkdir dir="${dist.dir}/amoeba/error" />
+        <mkdir dir="${dist.dir}/amoeba/tmp" />
         
         <copy file="${src.dir}/version.txt" todir="${dist.dir}/amoeba" />
         <copy file="readme.txt" todir="${dist.dir}/amoeba" />

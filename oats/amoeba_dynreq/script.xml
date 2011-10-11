@@ -1,0 +1,37 @@
+<script id="">
+<!--
+	How to associate a databank file and create databank variables:
+	
+	Every databank file must specify a filename. This filename is the name of the file
+	relative to the [OracleATS]\OFT\DataBank folder, where [OracleATS] is the root Oracle folder path.
+	
+	
+	
+	Every databank variable must specify a name (see the name attribute).
+	The name specifies how the databank variable will be referenced in a script.
+	
+	A databank variable can optionally specify a column index (see the fileno attribute).
+	The column index specifies which column in the databank file to map the variable.
+	For example, the first column in the databank file is column 1, the second is column 2, ...
+	If no index is specified, the order in which the variable appears in THIS file is assumed
+	to be the databank variable index. So the first variable specified maps to column 1, the second
+	to column 2, ...
+	
+	A databank variable can optionally specify a column header (see the fname attribute).
+	The column header specifies which column in the databank file to map the variable.
+	If no column header is specified, the variable index is used to determine which column
+	to map the databank variable.
+	If a column header is specified, it will be used instead of the variable's
+	column index or position in this file.
+	
+
+	Example XML:
+	<vars filename="fmstocks_data.csv" recno="1">
+		<var name="var1" />			
+		<var name="var2" fname="password" />
+		<var name="var3" fname="ticker" fileno="3" />
+		<var name="acctnum" />
+	</vars>
+
+-->
+</script>

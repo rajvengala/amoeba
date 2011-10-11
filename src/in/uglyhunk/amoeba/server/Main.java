@@ -84,15 +84,15 @@ public class Main {
         sdf = Configuration.getSimpleDateFormat();
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         
-        String njasHome = System.getenv("AMOEBA_HOME");
-        conf.setNjasHome(njasHome);
-        if (njasHome == null) {
+        String amoebaHome = System.getenv("AMOEBA_HOME");
+        conf.setAmoebaHome(amoebaHome);
+        if (amoebaHome == null) {
             System.out.println("AMOEBA_HOME environemnt variable is not set");
             System.exit(1);
         }
 
         amoebaProps = new Properties();
-        String propFilePath = njasHome + File.separator + "conf" + File.separator + Configuration.getConfFile();
+        String propFilePath = amoebaHome + File.separator + "conf" + File.separator + Configuration.getConfFile();
         try {
             FileReader reader = new FileReader(propFilePath);
             amoebaProps.load(reader);
@@ -166,7 +166,7 @@ public class Main {
         logger.addHandler(console);
 
         // create logs directory
-        logDir = new File(conf.getNjasHome() + File.separator + "logs");
+        logDir = new File(conf.getAmoebaHome() + File.separator + "logs");
         if (!logDir.exists()) {
             logDir.mkdir();
         }
@@ -460,7 +460,7 @@ public class Main {
         try {
             socketChannel = (SocketChannel) key.channel();
             bytesRead = socketChannel.read(readBuffer);
-
+            
             if (bytesRead == -1) {
                 // channel has reached the end of the stream
                 // remote socket shutdown was clean

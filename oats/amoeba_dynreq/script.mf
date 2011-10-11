@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scriptManifest>
+<scriptClass value="oracle.oats.scripting.modules.basic.api.IteratingVUser" />
+
+<scriptExecutorClass value="oracle.oats.scripting.modules.basic.api.internal.IteratingAgent" />
+<packageReaderClass value="oracle.oats.runitem.packageReader.SimpleJWGReader" />
+
+</scriptManifest>

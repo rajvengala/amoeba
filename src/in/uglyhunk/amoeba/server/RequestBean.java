@@ -358,6 +358,14 @@ public class RequestBean {
         return postBodyMap;
     }
     
+    void insertIntoMultipartBodyMap(String param, String value){
+        multiPartBodyMap.put(param, value);
+    }
+    
+    public HashMap<java.lang.String, java.lang.String> getMultiPartBodyMap() {
+        return multiPartBodyMap;
+    }
+    
     public String getParamValue(String param){
         // search in query string map
         if(queryStringMap.containsKey(param)){
@@ -368,15 +376,12 @@ public class RequestBean {
         if(postBodyMap.containsKey(param)){
             return postBodyMap.get(param);
         }
+        
+        // search in multipart post body map
+        if(multiPartBodyMap.containsKey(param)){
+            return multiPartBodyMap.get(param);
+        }
         return null;
-    }
-    
-    void insertIntoMultipartBodyMap(String param, String value){
-        multiPartBodyMap.put(param, value);
-    }
-    
-    public HashMap<java.lang.String, java.lang.String> getMultiPartBodyMap() {
-        return multiPartBodyMap;
     }
 
     private String method;
@@ -405,5 +410,4 @@ public class RequestBean {
     private HashMap<String, String> queryStringMap = new HashMap<String, String>();
     private HashMap<String, String> postBodyMap = new HashMap<String, String>();
     private HashMap<String, String> multiPartBodyMap = new HashMap<String, String>();
-
 }
