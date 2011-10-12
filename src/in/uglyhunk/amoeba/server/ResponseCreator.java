@@ -171,7 +171,7 @@ public class ResponseCreator{
                 // retreive the response body set by the user
                 // from the responseBean instance
                 String rawBody = responseBean.getRespBody();
-                byte rawBodyBytes[] = rawBody.getBytes(charset);
+                byte rawBodyBytes[] = rawBody.getBytes(Configuration.getCharset());
                 responseBodyByteBuffer = ByteBuffer.allocate(rawBodyBytes.length);
                 responseBodyByteBuffer.put(rawBodyBytes);
                 responseBodyByteBuffer.flip();
@@ -368,7 +368,7 @@ public class ResponseCreator{
 
     private String calculateETag() throws Exception {
         String eTagSource = resourcePath.toString() + lastModified;
-        byte[] eTagSouceBytes = eTagSource.getBytes(charset);
+        byte[] eTagSouceBytes = eTagSource.getBytes(Configuration.getCharset());
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         byte[] digest = md5.digest(eTagSouceBytes);
         return DatatypeConverter.printBase64Binary(digest);
@@ -486,8 +486,6 @@ public class ResponseCreator{
     private static ConcurrentHashMap<String, HashMap<String, String>> contextMap = RuntimeData.getContextMap();
     private static ConcurrentHashMap<String, HashMap<String, DynamicRequest>> contextDynamicInstanceMap 
                                                                                 = RuntimeData.getContextDymaicInstanceMap();
-   
-    private static final String charset = "UTF-8";
     // multiple threads change the following volatile variables
     private static volatile long resourcesReadFromDisk;
     private static volatile long resourcesReadFromCache;

@@ -260,18 +260,26 @@ public class RequestProcessor implements Runnable {
             requestBean.setBody(body);
             boolean isFile = false;
             String multipartParamName = null;
-            MappedByteBuffer mappedByteBuffer = null;
+            FileOutputStream fos = null;
+            FileChannel fc = null;
+            
             for(String line : body.split(Utilities.getHTTPEOL())){
-                if(line.equalsIgnoreCase(boundary)){
+                if(line.equals("--" + boundary) || line.equals("--" + boundary + "--")){
                     // close file channel
-                    if(isFile) isFile = false;
+                    if(isFile) {
+                        isFile = false;
+                        fos.flush();
+                        fos.close();
+                        fc.close();
+                        fc = null;
+                    }
                 } else if(line.contains("Content-Disposition:")){
                     // Content-Disposition: form-data; name="submitBtn"
                     // Content-Disposition: form-data; name="myfile"; filename="temp.ext"
-                    String tokens[] = line.split(":");
+                    String tokens[] = line.split("Disposition:");
                     if(tokens.length == 2){
                         // paranName = myfile"; filename="d=1[1].js" (or) myfile"
-                        String paramName = tokens[1].trim().split("name=\"")[1];
+                        String paramName = tokens[1].split("name=\"")[1];
                         if(paramName.contains("\";")){
                             multipartParamName = paramName.split("\";")[0];
                         } else {
@@ -279,7 +287,7 @@ public class RequestProcessor implements Runnable {
                         }
 
                         // if the multipart section is file, flag it here
-                        if(paramName.contains("filename=")){
+                        if(tokens[1].contains("filename=")){
                             isFile = true;
                         }
                     }
@@ -289,18 +297,16 @@ public class RequestProcessor implements Runnable {
                     // save content to file
                     if(isFile){
                         ByteBuffer buffer = Configuration.getCharset().encode(line);
-                        buffer.flip();
+                        //buffer.flip();
                         // open mmapped file and write each line
-                        if(mappedByteBuffer == null){
+                        if(fc == null){
                             String filename = new Random().nextLong() + ".tmp";
-                            File tmpFile = new File(conf.getTmpFolder() + filename);
+                            File tmpFile = new File(conf.getTmpFolder() + File.separator + filename);
                             requestBean.insertIntoMultipartBodyMap(multipartParamName, tmpFile.toString());
-                            FileOutputStream fos = new FileOutputStream(tmpFile);
-                            FileChannel fc = fos.getChannel();
-                            mappedByteBuffer = fc.map(FileChannel.MapMode.READ_WRITE, 0, Integer.MAX_VALUE);
-                            fc.close();
+                            fos = new FileOutputStream(tmpFile);
+                            fc = fos.getChannel();
                         }
-                        mappedByteBuffer.put(buffer);
+                        fc.write(buffer);
                     } else {
                         requestBean.insertIntoMultipartBodyMap(multipartParamName, line);
                     }
