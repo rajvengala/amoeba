@@ -5,8 +5,6 @@
 
 package in.uglyhunk.amoeba.server;
 
-import java.nio.charset.Charset;
-
 /**
  *
  * @author uglyhunk
@@ -26,12 +24,7 @@ public class Utilities {
         return EOL;
     }
 
-    public static String getHTTPEOL(){
-        return HTTP_EOL;
-    }
-    
     private static final String EOL = System.getProperty("line.separator");
-    private static final String HTTP_EOL = "\r\n";
 }
 
 

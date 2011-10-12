@@ -537,60 +537,60 @@ public class Main {
                 StringBuilder respHeaders = new StringBuilder();
                 
                 // Status line
-                respHeaders.append(statusLine).append(Utilities.getHTTPEOL());
+                respHeaders.append(statusLine).append(Utilities.getEOL());
                 
                 // Content-Type header
-                respHeaders.append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL());
+                respHeaders.append("Content-Type: ").append(contentType).append(Utilities.getEOL());
 
                 // Content-Length header
                 if (contentLength != null) {
-                    respHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
+                    respHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getEOL());
                 }
                 
                 // Contet-Encoding header
                 if(conf.getCompression()) {
                     String contentEncoding = responseBean.getContentEncoding();
                     if (contentEncoding != null) {
-                        respHeaders.append("Content-Encoding: ").append(responseBean.getContentEncoding()).append(Utilities.getHTTPEOL());
+                        respHeaders.append("Content-Encoding: ").append(responseBean.getContentEncoding()).append(Utilities.getEOL());
                     }
                 }
 
                 // Last-Modified header
                 if (lastModified != 0) {
                     String lastModifiedValue = sdf.format(new Date(lastModified));
-                    respHeaders.append("Last-Modified: ").append(lastModifiedValue).append(Utilities.getHTTPEOL());
+                    respHeaders.append("Last-Modified: ").append(lastModifiedValue).append(Utilities.getEOL());
                 }
 
                 // etag header
                 if (eTag != null) {
-                    respHeaders.append("ETag: \"").append(eTag).append("\"").append(Utilities.getHTTPEOL());
-                    respHeaders.append("Cache-Control: max-age=").append(conf.getMaxAge()).append(Utilities.getHTTPEOL());
+                    respHeaders.append("ETag: \"").append(eTag).append("\"").append(Utilities.getEOL());
+                    respHeaders.append("Cache-Control: max-age=").append(conf.getMaxAge()).append(Utilities.getEOL());
                 }
 
                 // Server Header
-                respHeaders.append("Server: ").append(server).append(Utilities.getHTTPEOL());
+                respHeaders.append("Server: ").append(server).append(Utilities.getEOL());
                 
                 // Date header
-                respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis()))).append(Utilities.getHTTPEOL());
+                respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis()))).append(Utilities.getEOL());
                                 
                 // Connection header
                 if(selectionKeyTimestampMap.containsKey(key)){
                     long idleTime = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - selectionKeyTimestampMap.get(key));
                     if(idleTime >= channelTimeout){
-                        respHeaders.append("Connection: close").append(Utilities.getHTTPEOL());
+                        respHeaders.append("Connection: close").append(Utilities.getEOL());
                         idleSelectionKeyList.add(key);
                         selectionKeyTimestampMap.remove(key);
                     } else {
-                        respHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
+                        respHeaders.append("Connection: Keep-Alive").append(Utilities.getEOL());
                         selectionKeyTimestampMap.put(key, System.nanoTime());
                     }
                 } else {
-                    respHeaders.append("Connection: Keep-Alive").append(Utilities.getHTTPEOL());
+                    respHeaders.append("Connection: Keep-Alive").append(Utilities.getEOL());
                     selectionKeyTimestampMap.put(key, System.nanoTime());
                 }
                     
                 // new line - end of headers
-                respHeaders.append(Utilities.getHTTPEOL());
+                respHeaders.append(Utilities.getEOL());
 
                 byte headerBytes[] = respHeaders.toString().getBytes("UTF-8");
                 ByteBuffer respHeadersBuffer = ByteBuffer.allocate(headerBytes.length);
@@ -673,31 +673,31 @@ public class Main {
                 StringBuilder responseHeaders = new StringBuilder();
 
                 // Status line
-                responseHeaders.append(statusLine).append(Utilities.getHTTPEOL());
+                responseHeaders.append(statusLine).append(Utilities.getEOL());
 
                 // Content-Type header
-                responseHeaders.append("Content-Type: ").append(contentType).append(Utilities.getHTTPEOL());
+                responseHeaders.append("Content-Type: ").append(contentType).append(Utilities.getEOL());
 
                 // Content-Length header
                 if (contentLength != null) {
-                    responseHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getHTTPEOL());
+                    responseHeaders.append("Content-Length: ").append(contentLength).append(Utilities.getEOL());
                 }
 
                 // Accept-Ranges headers
-                responseHeaders.append("Accept-Ranges: ").append("bytes").append(Utilities.getHTTPEOL());
+                responseHeaders.append("Accept-Ranges: ").append("bytes").append(Utilities.getEOL());
 
                  // format -> Content-Range: bytes 500-1000/1200
-                responseHeaders.append("Content-Range: ").append(contentRange).append(Utilities.getHTTPEOL());
+                responseHeaders.append("Content-Range: ").append(contentRange).append(Utilities.getEOL());
 
                 // Server Header
-                responseHeaders.append("Server: ").append(server).append(Utilities.getHTTPEOL());
+                responseHeaders.append("Server: ").append(server).append(Utilities.getEOL());
 
-                responseHeaders.append("Connection: Close").append(Utilities.getHTTPEOL());
+                responseHeaders.append("Connection: Close").append(Utilities.getEOL());
                 // Date header
                 //respHeaders.append("Date: ").append(sdf.format(new Date(System.currentTimeMillis()))).append(Utilities.getHTTPEOL());
 
                 // new line - end of headers
-                responseHeaders.append(Utilities.getHTTPEOL());
+                responseHeaders.append(Utilities.getEOL());
 
                 byte headerBytes[] = responseHeaders.toString().getBytes("UTF-8");
                 ByteBuffer responseHeadersBuffer = ByteBuffer.allocate(headerBytes.length);

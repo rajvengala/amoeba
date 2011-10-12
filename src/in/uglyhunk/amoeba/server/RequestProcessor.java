@@ -59,10 +59,10 @@ public class RequestProcessor implements Runnable {
 
     private void parseRequest(RequestBean requestBean, String rawRequest) throws Exception {
         requestBean.setRawRequest(rawRequest);
-        String requestLines[] = rawRequest.split(Utilities.getHTTPEOL());
+        String requestLines[] = rawRequest.split(Utilities.getEOL());
         
         int headersLength = 0;
-        int eolLength = Utilities.getHTTPEOL().length();
+        int eolLength = Utilities.getEOL().length();
         for(String line: requestLines) {
             if(!isBody){
                 processRequestHeaders(line);
@@ -263,7 +263,7 @@ public class RequestProcessor implements Runnable {
             FileOutputStream fos = null;
             FileChannel fc = null;
             
-            for(String line : body.split(Utilities.getHTTPEOL())){
+            for(String line : body.split(Utilities.getEOL())){
                 if(line.equals("--" + boundary) || line.equals("--" + boundary + "--")){
                     // close file channel
                     if(isFile) {
@@ -278,7 +278,7 @@ public class RequestProcessor implements Runnable {
                     // Content-Disposition: form-data; name="myfile"; filename="temp.ext"
                     String tokens[] = line.split("Disposition:");
                     if(tokens.length == 2){
-                        // paranName = myfile"; filename="d=1[1].js" (or) myfile"
+                        // paranName = myfile"; filename="temp.ext" (or) myfile"
                         String paramName = tokens[1].split("name=\"")[1];
                         if(paramName.contains("\";")){
                             multipartParamName = paramName.split("\";")[0];
@@ -296,7 +296,8 @@ public class RequestProcessor implements Runnable {
                 } else if(line.length() > 0){
                     // save content to file
                     if(isFile){
-                        ByteBuffer buffer = Configuration.getCharset().encode(line);
+                        
+                        ByteBuffer buffer = Configuration.getCharset().encode(line.concat(Utilities.getEOL()));
                         //buffer.flip();
                         // open mmapped file and write each line
                         if(fc == null){
