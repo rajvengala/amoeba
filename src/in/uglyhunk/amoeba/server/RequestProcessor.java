@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Random;
@@ -38,7 +37,7 @@ public class RequestProcessor implements Runnable {
             readBuffer.flip();
 
             String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
-            parseRequest(requestBean, rawRequest);
+            parseRequest(requestBean, rawRequest.trim());
                                     
             responseBean = new ResponseCreator(requestBean).process();
             responseMap.put(key, responseBean);
@@ -60,7 +59,7 @@ public class RequestProcessor implements Runnable {
     private void parseRequest(RequestBean requestBean, String rawRequest) throws Exception {
         requestBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getEOL());
-        
+               
         int headersLength = 0;
         int eolLength = Utilities.getEOL().length();
         for(String line: requestLines) {
@@ -75,7 +74,7 @@ public class RequestProcessor implements Runnable {
         // get requests, hence, will not be processed for body
         int contentLength = requestBean.getContentLength();
         if(contentLength > 0){
-            String body = rawRequest.substring(headersLength, headersLength + contentLength);
+            String body = rawRequest.substring(headersLength, headersLength + contentLength - 2);
             processRequestBody(body);
         }
     }
@@ -260,6 +259,7 @@ public class RequestProcessor implements Runnable {
             requestBean.setBody(body);
             boolean isFile = false;
             String multipartParamName = null;
+            boolean headerMode = false;
             FileOutputStream fos = null;
             FileChannel fc = null;
             
@@ -273,7 +273,8 @@ public class RequestProcessor implements Runnable {
                         fc.close();
                         fc = null;
                     }
-                } else if(line.contains("Content-Disposition:")){
+                    headerMode = true;
+                } else if(line.contains("Content-Disposition:") && headerMode){
                     // Content-Disposition: form-data; name="submitBtn"
                     // Content-Disposition: form-data; name="myfile"; filename="temp.ext"
                     String tokens[] = line.split("Disposition:");
@@ -291,8 +292,8 @@ public class RequestProcessor implements Runnable {
                             isFile = true;
                         }
                     }
-                } else if(line.contains("Content-Type")){
-                    ;
+                } else if(line.contains("Content-Type") && headerMode){
+                    headerMode = false;
                 } else if(line.length() > 0){
                     // save content to file
                     if(isFile){
