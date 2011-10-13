@@ -8,7 +8,6 @@ import in.uglyhunk.amoeba.server.Configuration;
 import in.uglyhunk.amoeba.server.Utilities;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -25,13 +24,13 @@ public class AmoebaClassLoader extends ClassLoader {
     }
     
     @Override
-    public Class<?> findClass(String className) throws ClassNotFoundException{
+    public Class<?> findClass(String className) throws ClassNotFoundException {
         byte[] classBytes = null;
+        
         try{
             classBytes = loadClassBytes(className);
         } catch(IOException ioe){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
-            //throw new ClassNotFoundException(className);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
         
         Class<?> cl = defineClass(className, classBytes, 0, classBytes.length);
@@ -41,7 +40,7 @@ public class AmoebaClassLoader extends ClassLoader {
         return cl;
     }
     
-    private byte[] loadClassBytes(String className) throws IOException {
+    private byte[] loadClassBytes(String className) throws IOException{
         FileInputStream fis = null;
         FileChannel fc = null;
         ByteBuffer classByteBuffer = null;
@@ -54,11 +53,8 @@ public class AmoebaClassLoader extends ClassLoader {
             classByteBuffer = ByteBuffer.allocate(classSize);
             fc.read(classByteBuffer);
             classByteBuffer.flip();
-        } catch(FileNotFoundException fnfe){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
-        } catch(IOException ioe){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
-        } finally {
+      
+        }finally {
             if(fis != null) {
                 fis.close();
                 fc.close();

@@ -464,20 +464,24 @@ public class Main {
             if (bytesRead == -1) {
                 // channel has reached the end of the stream
                 // remote socket shutdown was clean
-                socketChannel.close();
-                key.cancel();
+                idleSelectionKeyList.add(key);
                 return;
             }
 
+            // flip the buffer
+            readBuffer.flip();
+            byte[] readBufferBytes = new byte[bytesRead];
+            readBuffer.get(readBufferBytes); // debugging statemetn
+            
             // create a request bean from raw data
             RequestBean reqBean = new RequestBean();
-            reqBean.setRawRequestBytes(readBuffer.array());
+            reqBean.setRawRequestBytes(readBufferBytes);
             reqBean.setSelectionKey(key);
                                     
             //System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
             //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
-            //logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
-            //                                            new String(readBuffer.array()).split("\r\n")[0]});
+//            logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
+//                                                        new String(readBuffer.array()).split("\r\n")[0]});
             
             // put the selection key of the request in the queue.
             // responses will be sent in the order as appeared in this queue

@@ -33,15 +33,15 @@ public class RequestBean {
     /**
      * @return the resource
      */
-    public String getResource() {
-        return resource;
+    public String getRelativeResourcePath() {
+        return relativeResourcePath;
     }
 
     /**
      * @param resource the resource to set
      */
-    void setResource(String resource) {
-        this.resource = resource;
+    void setRelativeResourcePath(String relativeResourcePath) {
+        this.relativeResourcePath = relativeResourcePath;
     }
 
     /**
@@ -385,7 +385,7 @@ public class RequestBean {
     }
 
     private String method;
-    private String resource;
+    private String relativeResourcePath;
     private String queryString;
     private String httpVersion;
     private String accept;

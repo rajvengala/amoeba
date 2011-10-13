@@ -38,7 +38,7 @@ public class ResponseCreator{
     
     public ResponseBean processError(){
         respCode = "_500";
-        resourceType = "html";
+        //resourceType = "html";
         prepareErrorResponseBody(respCode, "_none_");
         prepareResponseHeaders();
         return responseBean;
@@ -52,18 +52,18 @@ public class ResponseCreator{
 
             // If virtual host is set to false, append "default" and then
             // append resourcePath name to the document root for absolute path
-            resourcePath = new StringBuilder();
+            absoluteResourcePath = new StringBuilder();
             
             // resource will be in one of the following forms
             // 1. /
             // 2. /image.gif
             // 3. /classes/getStockQuote
-            String resource = requestBean.getResource();
-            if(resource.equals("/"))
-                resource = "/index.html";
+            String relativeResourcePath = requestBean.getRelativeResourcePath();
+            if(relativeResourcePath.equals("/"))
+                relativeResourcePath = "/index.html";
         
-            if(resource.contains(".")){
-                resourceType = resource.split("\\.")[1];
+            if(relativeResourcePath.contains(".")){
+                resourceType = relativeResourcePath.split("\\.")[1];
             } else {
                 // resouce type is not obvious from the file extension
                 // assume the resource type as html and set content type accordingly
@@ -86,22 +86,22 @@ public class ResponseCreator{
             // If virtual host is enabled
             //  + <DOC_ROOT>/<hostname_in_request_header>/CLASSES/getStockQuote
             //  + <DOC_ROOT>/<hostname_in_request_header>/image.gif
-            resourcePath.append(documentRoot).append("/").append(contextName).append(resource);
-            responseBean.setAbsoluteResource(resourcePath.toString());
+            absoluteResourcePath.append(documentRoot).append("/").append(contextName).append(relativeResourcePath);
+            responseBean.setAbsoluteResource(absoluteResourcePath.toString());
 
             // if in maintenance, serve 503 response for all the requests
             if(conf.isMaintenance()){
                 respCode = "_503";
-                prepareErrorResponseBody(respCode, resource);
+                prepareErrorResponseBody(respCode, relativeResourcePath);
             } else {
                 // non-maintenance mode operation
-                prepareResponseBody(resource);
+                prepareResponseBody(relativeResourcePath);
             }
             prepareResponseHeaders();
             return responseBean;
     }
 
-    private void prepareResponseBody(String resource) {
+    private void prepareResponseBody(String relativeResourcePath) {
        try {
             ByteBuffer responseBodyByteBuffer = null;
             String dynClassTag = Configuration.getDynamicClassTag();
@@ -111,11 +111,11 @@ public class ResponseCreator{
             // pass them to context classes in "classes" sub-directory
             
             // ************* Dynamic request *************
-            if(resourcePath.toString().contains(dynClassTag)) {
+            if(absoluteResourcePath.toString().contains(dynClassTag)) {
                 DynamicRequest dynamicReq = null;
                 // Extracts target class name from the resourcePath
                 // eg: /var/www/default/CLASSES/getStockQuote => getStockQuote
-                String className = resourcePath.toString().split(dynClassTag + "/")[1];
+                String className = absoluteResourcePath.toString().split(dynClassTag + "/")[1];
                 
                 // Check if the instance for this class is already created.
                 // If so, use that instance for all requests
@@ -140,7 +140,7 @@ public class ResponseCreator{
                     } else {
                         // No classloader exists for this context.
                         // Create a new class loader and put it in a classloader map
-                        String absoluteContextPath = resourcePath.toString().split("/" + dynClassTag)[0];
+                        String absoluteContextPath = absoluteResourcePath.toString().split("/" + dynClassTag)[0];
                         classLoader = new AmoebaClassLoader(absoluteContextPath);
                         classLoaderMap.put(contextName, classLoader);
                     }
@@ -150,7 +150,10 @@ public class ResponseCreator{
                     HashMap<String, String> classMap = contextMap.get(contextName);
                     String fullClassName = classMap.get(className);
 
-                    dynamicReq = (DynamicRequest) classLoader.loadClass(fullClassName).newInstance();
+                    if(fullClassName != null)
+                        dynamicReq = (DynamicRequest) classLoader.loadClass(fullClassName).newInstance();
+                    else
+                        throw new FileNotFoundException(relativeResourcePath + " is not found");
                     
                     // save the instance in a map for later requests for the same class
                     HashMap<String, DynamicRequest> dynamicInstanceMap = null;
@@ -191,7 +194,7 @@ public class ResponseCreator{
             // ************* Static resource request *************
                 // if the request is for a static resourcePath
                 // read the resource contents from the file system
-                File f = new File(resourcePath.toString());
+                File f = new File(absoluteResourcePath.toString());
                 lastModified = f.lastModified();
                 
                 // ************* Conditional request test *************
@@ -324,14 +327,16 @@ public class ResponseCreator{
                 responseBean.setBody(responseBodyByteBuffer);
             }
         } catch (FileNotFoundException fnfe) {
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(fnfe), fnfe);
+            Configuration.getLogger().log(Level.WARNING, fnfe.getMessage(), fnfe);
             respCode = "_404";
-            prepareErrorResponseBody(respCode, resource);
+            //resourceType = "html";
+            prepareErrorResponseBody(respCode, relativeResourcePath);
             return;
         } catch (Exception e) {
             Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
             respCode = "_500";
-            prepareErrorResponseBody(respCode, resource);
+            //resourceType = "html";
+            prepareErrorResponseBody(respCode, relativeResourcePath);
             return;
         }
         return;
@@ -367,7 +372,7 @@ public class ResponseCreator{
     }
 
     private String calculateETag() throws Exception {
-        String eTagSource = resourcePath.toString() + lastModified;
+        String eTagSource = absoluteResourcePath.toString() + lastModified;
         byte[] eTagSouceBytes = eTagSource.getBytes(Configuration.getCharset());
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         byte[] digest = md5.digest(eTagSouceBytes);
@@ -414,11 +419,18 @@ public class ResponseCreator{
         return true;
     }
 
-    private void prepareErrorResponseBody(String respCode, String resource) {
+    private void prepareErrorResponseBody(String respCode, String relativeResourcePath) {
         try{
+            String resourceTokens[] = relativeResourcePath.split("/");
+            String resource = resourceTokens[resourceTokens.length - 1];
+            
             File f = new File(conf.getErrorPageFolder() + File.separator + resource);
             if(!f.exists()){
                 f = new File(conf.getErrorPageFolder() + File.separator + respCode.split("_")[1] + ".html");
+                resourceType = "html";
+            } else {
+                this.respCode = "_200";
+                resourceType = resource.split("\\.")[1];
             }
             
             FileInputStream fis = new FileInputStream(f);
@@ -432,7 +444,7 @@ public class ResponseCreator{
             fis.close();
             fc.close();
 
-            if(conf.getCompression()){
+            if(conf.getCompression() && isCompressable(resourceType)){
                 compress(responseBodyByteBuffer.array());
             } else {
                 respContentLength = fileLength;
@@ -476,7 +488,7 @@ public class ResponseCreator{
     private ResponseBean responseBean;
     private String resourceType;
     private long lastModified;
-    private StringBuilder resourcePath;
+    private StringBuilder absoluteResourcePath;
     private int resourceSize;
     private String eTag;
     private String contextName;

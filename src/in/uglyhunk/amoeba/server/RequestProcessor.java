@@ -29,15 +29,15 @@ public class RequestProcessor implements Runnable {
         SelectionKey key = null;
         try {
             requestBean = requestQueue.take();
-            byte[] readBufferArray = requestBean.getRawRequestBytes();
             key = requestBean.getSelectionKey();
             
+            byte[] readBufferArray = requestBean.getRawRequestBytes();
             ByteBuffer readBuffer = ByteBuffer.allocate(readBufferArray.length);
             readBuffer.put(readBufferArray);
             readBuffer.flip();
 
             String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
-            parseRequest(requestBean, rawRequest.trim());
+            parseRequest(requestBean, rawRequest);
                                     
             responseBean = new ResponseCreator(requestBean).process();
             responseMap.put(key, responseBean);
@@ -74,7 +74,7 @@ public class RequestProcessor implements Runnable {
         // get requests, hence, will not be processed for body
         int contentLength = requestBean.getContentLength();
         if(contentLength > 0){
-            String body = rawRequest.substring(headersLength, headersLength + contentLength - 2);
+            String body = rawRequest.substring(headersLength, headersLength + contentLength);
             processRequestBody(body);
         }
     }
@@ -94,7 +94,7 @@ public class RequestProcessor implements Runnable {
                         String temp[] = tokens[1].split("\\?");
 
                         //requested resource
-                        requestBean.setResource(temp[0]);
+                        requestBean.setRelativeResourcePath(temp[0]);
 
                         // query string
                         String queryString = temp[1];
@@ -109,7 +109,7 @@ public class RequestProcessor implements Runnable {
                             requestBean.insertIntoQueryStringMap(param, value);
                         }
                     } else {
-                        requestBean.setResource(tokens[1]);
+                        requestBean.setRelativeResourcePath(tokens[1]);
                     }
 
                     // http version
@@ -294,13 +294,16 @@ public class RequestProcessor implements Runnable {
                     }
                 } else if(line.contains("Content-Type") && headerMode){
                     headerMode = false;
-                } else if(line.length() > 0){
+                } else {
                     // save content to file
                     if(isFile){
-                        
-                        ByteBuffer buffer = Configuration.getCharset().encode(line.concat(Utilities.getEOL()));
-                        //buffer.flip();
-                        // open mmapped file and write each line
+                        ByteBuffer buffer = null;
+                        if(fc != null){
+                            buffer = Configuration.getCharset().encode(line.concat(Utilities.getEOL()));
+                        } else {
+                            buffer = Configuration.getCharset().encode(line);
+                        }
+                                              
                         if(fc == null){
                             String filename = new Random().nextLong() + ".tmp";
                             File tmpFile = new File(conf.getTmpFolder() + File.separator + filename);
