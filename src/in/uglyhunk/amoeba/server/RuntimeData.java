@@ -183,6 +183,23 @@ public class RuntimeData {
        selectionKeyLargeFileMap = _selectionKeyLargeFileMap;
     }
         
+    
+    /**
+     * @return the partialRequestMap
+     */
+    public static HashMap<SelectionKey,RequestProperties> getPartialRequestMap() {
+        return partialRequestMap;
+    }
+
+    /**
+     * @param aPartialRequestMap the partialRequestMap to set
+     */
+    public static void setPartialRequestMap(HashMap<SelectionKey, RequestProperties> aPartialRequestMap) {
+        partialRequestMap = aPartialRequestMap;
+    }
+    
+    // ************* Members *****************
+     
     /*
      * Instance of a class that extends ThreadPoolExecutor
      */
@@ -250,7 +267,18 @@ public class RuntimeData {
      */
     private static ArrayList<SelectionKey> idleSelectionKeyList;
     
+    /*
+     * Maps selection keys to memorymappedbuffer
+     * This is used when sending large file response
+     * 
+     */
     private static HashMap<SelectionKey, Boolean> selectionKeyLargeFileMap;
+    
+    /*
+     * Maps selection keys to byte array of partially received requests
+     */
+    private static HashMap<SelectionKey, RequestProperties> partialRequestMap;
 
+    
 
 }

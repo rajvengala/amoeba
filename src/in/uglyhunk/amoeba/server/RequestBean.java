@@ -286,21 +286,6 @@ public class RequestBean {
     }
     
     /**
-     * @return the rawRequestBytes
-     */
-    public byte[] getRawRequestBytes() {
-        return rawRequestBytes;
-    }
-
-    /**
-     * @param rawRequestBytes the rawRequestBytes to set
-     */
-    void setRawRequestBytes(byte[] rawRequestBytes) {
-        this.rawRequestBytes = rawRequestBytes;
-    }
-    
-    
-    /**
      * @return the ifModifiedSince
      */
     public long getIfModifiedSince() {
@@ -383,6 +368,21 @@ public class RequestBean {
         }
         return null;
     }
+    
+    
+    /**
+     * @return the rawRequestBytes
+     */
+    public byte[] getRawRequestBytes() {
+        return rawRequestBytes;
+    }
+
+    /**
+     * @param rawRequestBytes the rawRequestBytes to set
+     */
+    public void setRawRequestBytes(byte[] rawRequestBytes) {
+        this.rawRequestBytes = rawRequestBytes;
+    }
 
     private String method;
     private String relativeResourcePath;
@@ -403,11 +403,12 @@ public class RequestBean {
     private String cacheControl;
     private String body;
     private String rawRequest;
+    private byte[] rawRequestBytes;
     private SelectionKey selectionKey;
     private long ifModifiedSince;
     private String eTag;
-    private byte[] rawRequestBytes;
     private HashMap<String, String> queryStringMap = new HashMap<String, String>();
     private HashMap<String, String> postBodyMap = new HashMap<String, String>();
     private HashMap<String, String> multiPartBodyMap = new HashMap<String, String>();
+
 }

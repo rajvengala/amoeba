@@ -31,11 +31,11 @@ public class RequestProcessor implements Runnable {
             requestBean = requestQueue.take();
             key = requestBean.getSelectionKey();
             
-            byte[] readBufferArray = requestBean.getRawRequestBytes();
-            ByteBuffer readBuffer = ByteBuffer.allocate(readBufferArray.length);
-            readBuffer.put(readBufferArray);
+            byte[] rawRequestBytes = requestBean.getRawRequestBytes();
+            ByteBuffer readBuffer = ByteBuffer.allocate(rawRequestBytes.length);
+            readBuffer.put(rawRequestBytes);
             readBuffer.flip();
-
+            
             String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
             parseRequest(requestBean, rawRequest);
                                     

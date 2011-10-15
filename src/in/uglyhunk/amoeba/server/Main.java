@@ -300,6 +300,7 @@ public class Main {
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
         RuntimeData.setSelectionKeyLargeFileMap(new HashMap<SelectionKey, Boolean>());
+        RuntimeData.setPartialRequestMap(new HashMap<SelectionKey, RequestProperties>());
     }
     
     /**
@@ -389,6 +390,7 @@ public class Main {
             channelTimeout = conf.getIdleChannelTimeout(); 
             idleSelectionKeyList = RuntimeData.getIdleSelectionKeyList();
             selectionKeyLargeFileMap = RuntimeData.getSelectionKeyLargeFileMap();
+            partialRequestMap = RuntimeData.getPartialRequestMap();
                     
             while (true) {
                 // wait for an event on one of the registered channels
@@ -467,13 +469,22 @@ public class Main {
                 idleSelectionKeyList.add(key);
                 return;
             }
-
             // flip the buffer
             readBuffer.flip();
-            byte[] readBufferBytes = new byte[bytesRead];
-            readBuffer.get(readBufferBytes); // debugging statemetn
+                        
+            // decode the request
+            if(!decodeRequest(key, readBuffer, bytesRead)){
+                // register with the selector to trigger a read 
+                // when the channel is ready to be read
+                key.interestOps(SelectionKey.OP_READ);
+                key.selector().wakeup();
+                return;
+            }
             
-            // create a request bean from raw data
+            byte[] readBufferBytes = partialRequestMap.get(key).getRequestBytes();
+            partialRequestMap.remove(key);
+                        
+            // create a request bean
             RequestBean reqBean = new RequestBean();
             reqBean.setRawRequestBytes(readBufferBytes);
             reqBean.setSelectionKey(key);
@@ -752,6 +763,88 @@ public class Main {
         }
     }
 
+    private static boolean decodeRequest(SelectionKey key, ByteBuffer readBuffer, int bytesRead) {
+        // convert request in bytebuffer to string format
+        String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
+        
+        // trim the readBuffer into byte array by removing unfilled buffer
+        byte[] readBufferBytes = new byte[bytesRead];
+        readBuffer.flip();
+        readBuffer.get(readBufferBytes);
+        
+        RequestProperties reqProps = null;
+        int totalBodyLength = 0;
+        int bodyLength = 0;
+
+        if(partialRequestMap.containsKey(key)){
+            // part of this request has been read previously
+            reqProps = partialRequestMap.get(key);
+            totalBodyLength = reqProps.getTotalBodyLength();
+            bodyLength = reqProps.getPartialBodyLength();
+        } else {
+            // this is a new request
+            reqProps = new RequestProperties();
+            partialRequestMap.put(key, reqProps);
+        }
+        reqProps.setRequestBytes(readBufferBytes);
+        
+        // check if the new request has Content-Length header
+        // if exists, it is not a GET request
+        if(totalBodyLength > 0 || rawRequest.contains("Content-Length")){
+            // post/multipart-post request
+            if(totalBodyLength == 0){
+                totalBodyLength = Integer.parseInt(rawRequest
+                                                   .split("Content-Length")[1]
+                                                   .split(":")[1]
+                                                   .split(Utilities.getEOL())[0].trim());
+                reqProps.setTotalBodyLength(totalBodyLength);
+            }
+            
+            
+            // body has never been read
+            if(bodyLength == 0){
+                // check if end-of-headers marker is present
+                if(!reqProps.isBody() && rawRequest.contains(Utilities.getEOL() + Utilities.getEOL())){
+                    reqProps.setIsBody(true);
+                    
+                    // all headers have been received for the post request
+                    // get the size of the post body present in this read
+                    int endOfHeadersIndex = rawRequest.indexOf(Utilities.getEOL() + Utilities.getEOL());
+                    bodyLength = readBuffer.limit() - endOfHeadersIndex - (Utilities.getEOL().length() * 2);
+                    
+                    
+                    // save it in a map
+                    if(bodyLength < totalBodyLength){
+                        reqProps.setPartialBodyLength(bodyLength);
+                        return false;
+                    } else {
+                        // full post request headers and body are received
+                       return true;
+                    }
+                }
+            } 
+            
+            // readBuffer contains data, combine it with the existing buffer
+            reqProps.setPartialBodyLength(bytesRead);
+            if(reqProps.getPartialBodyLength() == totalBodyLength){
+                return true;
+            } else {
+                return false;
+            }
+            
+            
+        } else {
+            // get request
+            if(rawRequest.contains(Utilities.getEOL() + Utilities.getEOL())){
+                // full request has been received. decode success, return true
+                return true;
+            } else {
+                // partial request received
+                return false;
+            } 
+        }
+    }
+    
     public static int getActiveChannelsCount(){
         return activeChannelsCount;
     }
@@ -780,4 +873,5 @@ public class Main {
     private static ArrayList<SelectionKey> idleSelectionKeyList;
     
     private static HashMap<SelectionKey, Boolean> selectionKeyLargeFileMap;
+    private static HashMap<SelectionKey, RequestProperties> partialRequestMap;
 }
