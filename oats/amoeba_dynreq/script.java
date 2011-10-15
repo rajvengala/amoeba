@@ -19,36 +19,78 @@ public class script extends IteratingVUserScript {
 	 */
 	public void run() throws Exception {
 		
-		if (false) {
-			beginStep("Get Request", 0);
+		beginStep("Get Request", 0);
+		{
+			http.get(2, "http://169.254.153.53:1234/classes/TestDynRequests", http
+																							.querystring(
+																									http
+																											.param(
+																													"one",
+																													"one&two"),
+																									http
+																											.param(
+																													"two",
+																													"two&three")), null, true, "UTF-8", "UTF-8");
 			{
-				http.get(2, "http://169.254.153.53:1234/classes/TestDynRequests", http.querystring(http.param("one", "one&two"), http
-										.param("two", "two&three")), null, true, "UTF-8", "UTF-8");
+				http
+						.assertText(
+								"Get",
+								"Query String</br>One - one&two</br>Two - two&three</br>Response Body</br>Three - null</br>Four - null</br>Multipart Request Body</br>Five - null</br>Six - null</br>Filename - null</br>",
+								Source.Html, TextPresence.PassIfPresent,
+								MatchOption.Exact);
 			}
-			endStep();
 		}
-		if (false) {
-			beginStep("Post Request", 0);
+		endStep();
+		beginStep("Post Request", 0);
+		{
+			http.post(4, "http://169.254.153.53:1234/classes/TestDynRequests", http.querystring(http.param("one",
+													"one&two"), http.param(
+													"two", "two&three")), http.postdata(http.param("three",
+													"three&four"), http.param(
+													"four", "four&five")), null, true, "UTF-8", "UTF-8");
 			{
-				http.post(4, "http://169.254.153.53:1234/classes/TestDynRequests", http.querystring(http.param("one",
-														"one&two"), http.param(
-														"two", "two&three")), http.postdata(http.param("three",
-														"three&four"), http.param(
-														"four", "four&five")), null, true, "UTF-8", "UTF-8");
+				http
+						.assertText(
+								"Post",
+								"Query String</br>One - one&two</br>Two - two&three</br>Response Body</br>Three - three&four</br>Four - four&five</br>Multipart Request Body</br>Five - null</br>Six - null</br>Filename - null</br>",
+								Source.Html, TextPresence.PassIfPresent,
+								MatchOption.Exact);
 			}
-			endStep();
 		}
+		endStep();
 		beginStep("MultipartPost Request", 0);
 		{
-			http.multipartPost(5,
-					"http://169.254.153.53:1234/classes/TestDynRequests", http
-							.querystring(http.param("one", "one&two"), http
-									.param("two", "two&three")),
-					http.postdata(http.param("five", "five&six"), http.param(
-							"six", "six&seven"), http.param("filename",
-							"C:\\Users\\rvengala\\Desktop\\Inquest.docx",
-							"C:\\Users\\rvengala\\Desktop\\Inquest.docx", "")),
-					null, "ASCII", "ASCII");
+			http.multipartPost(5, "http://169.254.153.53:1234/classes/TestDynRequests", http
+																																																																											.querystring(
+																																																																													http
+																																																																															.param(
+																																																																																	"one",
+																																																																																	"one&two"),
+																																																																													http
+																																																																															.param(
+																																																																																	"two",
+																																																																																	"two&three")), http
+																																																																											.postdata(
+																																																																													http
+																																																																															.param(
+																																																																																	"five",
+																																																																																	"five&six"),
+																																																																													http
+																																																																															.param(
+																																																																																	"six",
+																																																																																	"six&seven"),
+																																																																													http
+																																																																															.param(
+																																																																																	"fname",
+																																																																																	"C:\\Users\\rvengala\\Desktop\\bulk.txt",
+																																																																																	"bulk",
+																																																																																	"")), null, "ASCII", "ASCII");
+			{
+				http.assertText("multipart",
+						"Filename - D:\\myprojects\\amoeba\\dist\\amoeba\\tmp",
+						Source.DisplayContent, TextPresence.PassIfPresent,
+						MatchOption.Exact);
+			}
 		}
 		endStep();
 		
