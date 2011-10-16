@@ -293,7 +293,6 @@ public class RequestProcessor implements Runnable {
                         }
                     }
                 } else if(line.contains("Content-Type") && headerMode){
-                    
                     headerMode = false;
                 } else {
                     // save content to file
@@ -301,18 +300,14 @@ public class RequestProcessor implements Runnable {
                         ByteBuffer buffer = null;
                         if(fc != null){
                             buffer = Configuration.getCharset().encode(line.concat(Utilities.getEOL()));
+                            fc.write(buffer);
                         } else {
-                            buffer = Configuration.getCharset().encode(line);
-                        }
-                                              
-                        if(fc == null){
                             String filename = new Random().nextLong() + ".tmp";
                             File tmpFile = new File(conf.getTmpFolder() + File.separator + filename);
                             requestBean.insertIntoMultipartBodyMap(multipartParamName, tmpFile.toString());
                             fos = new FileOutputStream(tmpFile);
                             fc = fos.getChannel();
                         }
-                        fc.write(buffer);
                     } else {
                         requestBean.insertIntoMultipartBodyMap(multipartParamName, line);
                     }
