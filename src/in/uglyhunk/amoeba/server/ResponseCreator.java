@@ -389,7 +389,7 @@ public class ResponseCreator{
     }
 
     private String contentType(String resourceType) {
-        for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
             if(resourceType.equalsIgnoreCase(enumContentType.toString())){
                 if(enumContentType.isBinary()) {
                     return enumContentType.getContentType();
@@ -402,7 +402,7 @@ public class ResponseCreator{
     }
     
     private boolean isCompressable(String resourceType){
-        for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
             if(resourceType.equalsIgnoreCase(enumContentType.toString())){
                 return enumContentType.isCompressable();
             }
@@ -411,7 +411,7 @@ public class ResponseCreator{
     }
     
     private boolean isCacheable(String resourceType){
-        for(ResponseContentTypeEnum enumContentType : ResponseContentTypeEnum.values()){
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
             if(resourceType.equalsIgnoreCase(enumContentType.toString())){
                 return enumContentType.isCacheable();
             }

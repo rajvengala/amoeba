@@ -187,14 +187,14 @@ public class RuntimeData {
     /**
      * @return the partialRequestMap
      */
-    public static HashMap<SelectionKey,RequestProperties> getPartialRequestMap() {
+    public static HashMap<SelectionKey,PartialRequest> getPartialRequestMap() {
         return partialRequestMap;
     }
 
     /**
      * @param aPartialRequestMap the partialRequestMap to set
      */
-    public static void setPartialRequestMap(HashMap<SelectionKey, RequestProperties> aPartialRequestMap) {
+    public static void setPartialRequestMap(HashMap<SelectionKey, PartialRequest> aPartialRequestMap) {
         partialRequestMap = aPartialRequestMap;
     }
     
@@ -277,7 +277,7 @@ public class RuntimeData {
     /*
      * Maps selection keys to byte array of partially received requests
      */
-    private static HashMap<SelectionKey, RequestProperties> partialRequestMap;
+    private static HashMap<SelectionKey, PartialRequest> partialRequestMap;
 
     
 

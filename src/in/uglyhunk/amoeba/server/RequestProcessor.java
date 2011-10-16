@@ -293,6 +293,7 @@ public class RequestProcessor implements Runnable {
                         }
                     }
                 } else if(line.contains("Content-Type") && headerMode){
+                    
                     headerMode = false;
                 } else {
                     // save content to file

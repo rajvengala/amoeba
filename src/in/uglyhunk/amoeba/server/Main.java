@@ -300,7 +300,7 @@ public class Main {
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
         RuntimeData.setSelectionKeyLargeFileMap(new HashMap<SelectionKey, Boolean>());
-        RuntimeData.setPartialRequestMap(new HashMap<SelectionKey, RequestProperties>());
+        RuntimeData.setPartialRequestMap(new HashMap<SelectionKey, PartialRequest>());
     }
     
     /**
@@ -772,7 +772,7 @@ public class Main {
         readBuffer.flip();
         readBuffer.get(readBufferBytes);
         
-        RequestProperties reqProps = null;
+        PartialRequest reqProps = null;
         int totalBodyLength = 0;
         int bodyLength = 0;
 
@@ -783,7 +783,7 @@ public class Main {
             bodyLength = reqProps.getPartialBodyLength();
         } else {
             // this is a new request
-            reqProps = new RequestProperties();
+            reqProps = new PartialRequest();
             partialRequestMap.put(key, reqProps);
         }
         reqProps.setRequestBytes(readBufferBytes);
@@ -873,5 +873,5 @@ public class Main {
     private static ArrayList<SelectionKey> idleSelectionKeyList;
     
     private static HashMap<SelectionKey, Boolean> selectionKeyLargeFileMap;
-    private static HashMap<SelectionKey, RequestProperties> partialRequestMap;
+    private static HashMap<SelectionKey, PartialRequest> partialRequestMap;
 }
