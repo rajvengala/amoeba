@@ -31,7 +31,7 @@ public class RequestProcessor implements Runnable {
             requestBean = requestQueue.take();
             key = requestBean.getSelectionKey();
             
-            byte[] rawRequestBytes = requestBean.getRawRequestBytes();
+            rawRequestBytes = requestBean.getRawRequestBytes();
             ByteBuffer readBuffer = ByteBuffer.allocate(rawRequestBytes.length);
             readBuffer.put(rawRequestBytes);
             readBuffer.flip();
@@ -60,7 +60,7 @@ public class RequestProcessor implements Runnable {
         requestBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getEOL());
                
-        int headersLength = 0;
+        int headersLength = 0; // includes empty-end-of-headers-newline
         int eolLength = Utilities.getEOL().length();
         for(String line: requestLines) {
             if(!isBody){
@@ -258,6 +258,7 @@ public class RequestProcessor implements Runnable {
         if(contentType != null && contentType.contains(Configuration.getMultipartFormEncoding())){
             requestBean.setBody(body);
             boolean isFile = false;
+            boolean isBinaryFile = false;
             String multipartParamName = null;
             boolean headerMode = false;
             FileOutputStream fos = null;
@@ -293,21 +294,28 @@ public class RequestProcessor implements Runnable {
                         }
                     }
                 } else if(line.contains("Content-Type") && headerMode){
+                    ;
+                } else if(line.contains("Content-Transfer-Encoding") && headerMode){
+                    ;
+                } else if(line.length() == 0 && headerMode){
                     headerMode = false;
                 } else {
                     // save content to file
                     if(isFile){
                         ByteBuffer buffer = null;
-                        if(fc != null){
+                        if(isBinaryFile){
+                            ;
+                        } else{
                             buffer = Configuration.getCharset().encode(line.concat(Utilities.getEOL()));
-                            fc.write(buffer);
-                        } else {
+                        }
+                        if(fc == null){
                             String filename = new Random().nextLong() + ".tmp";
                             File tmpFile = new File(conf.getTmpFolder() + File.separator + filename);
                             requestBean.insertIntoMultipartBodyMap(multipartParamName, tmpFile.toString());
                             fos = new FileOutputStream(tmpFile);
                             fc = fos.getChannel();
                         }
+                        fc.write(buffer);
                     } else {
                         requestBean.insertIntoMultipartBodyMap(multipartParamName, line);
                     }
@@ -335,6 +343,7 @@ public class RequestProcessor implements Runnable {
     private boolean isBody;
     private RequestBean requestBean;
     private ResponseBean responseBean;
+    byte[] rawRequestBytes;
     private static Configuration conf = Configuration.getInstance();
     private static LinkedBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
     private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap = RuntimeData.getResponseMap();

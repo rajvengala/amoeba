@@ -12,6 +12,7 @@ public enum ContentTypeEnum {
 
     //filextension("mimetype,binary,compess,cache)
     HTML("text/html", false, true, false),
+    HTM("text/html", false, true, false),
     TXT("text/plain", false, true, false),
     XML("application/atom+xml", false, true, false),
     CSS("text/css", false, true, true),
