@@ -800,7 +800,6 @@ public class Main {
                 reqProps.setTotalBodyLength(totalBodyLength);
             }
             
-            
             // body has never been read
             if(bodyLength == 0){
                 // check if end-of-headers marker is present
@@ -811,7 +810,6 @@ public class Main {
                     // get the size of the post body present in this read
                     int endOfHeadersIndex = rawRequest.indexOf(Utilities.getEOL() + Utilities.getEOL());
                     bodyLength = readBuffer.limit() - endOfHeadersIndex - (Utilities.getEOL().length() * 2);
-                    
                     
                     // save it in a map
                     if(bodyLength < totalBodyLength){

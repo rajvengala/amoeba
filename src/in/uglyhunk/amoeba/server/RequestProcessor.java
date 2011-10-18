@@ -11,6 +11,7 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -60,7 +61,7 @@ public class RequestProcessor implements Runnable {
         requestBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getEOL());
                
-        int headersLength = 0; // includes empty-end-of-headers-newline
+        headersLength = 0; // includes empty-end-of-headers-newline
         int eolLength = Utilities.getEOL().length();
         for(String line: requestLines) {
             if(!isBody){
@@ -74,7 +75,8 @@ public class RequestProcessor implements Runnable {
         // get requests, hence, will not be processed for body
         int contentLength = requestBean.getContentLength();
         if(contentLength > 0){
-            String body = rawRequest.substring(headersLength, headersLength + contentLength);
+            //String body = rawRequest.substring(headersLength, headersLength + contentLength);
+            String body = rawRequest.substring(headersLength);
             processRequestBody(body);
         }
     }
@@ -104,8 +106,8 @@ public class RequestProcessor implements Runnable {
                         String[] paramValueMaps = queryString.split(Configuration.getParamSeperator());
                         for(String paramValueMap : paramValueMaps){
                             String group[] = paramValueMap.split("=");
-                            String param = URLDecoder.decode(group[0], "UTF-8");
-                            String value = URLDecoder.decode(group[1], "UTF-8");
+                            String param = URLDecoder.decode(group[0], Configuration.getCharsetName());
+                            String value = URLDecoder.decode(group[1], Configuration.getCharsetName());
                             requestBean.insertIntoQueryStringMap(param, value);
                         }
                     } else {
@@ -263,9 +265,10 @@ public class RequestProcessor implements Runnable {
             boolean headerMode = false;
             FileOutputStream fos = null;
             FileChannel fc = null;
-            
+            int bodyIndex = 0;
+                 
             for(String line : body.split(Utilities.getEOL())){
-                if(line.equals("--" + boundary) || line.equals("--" + boundary + "--")){
+               if(line.equals("--" + boundary) || line.equals("--" + boundary + "--")){
                     // close file channel
                     if(isFile) {
                         isFile = false;
@@ -294,7 +297,14 @@ public class RequestProcessor implements Runnable {
                         }
                     }
                 } else if(line.contains("Content-Type") && headerMode){
-                    ;
+                    String tokens[] = line.split("Content-Type:");
+                    if(tokens.length == 2){
+                        String mimeType = tokens[1].trim();
+                        isBinaryFile = isContentBinary(mimeType);
+                    } else {
+                        // mime type not specified, default to non-binary
+                        isBinaryFile = false;
+                    }
                 } else if(line.contains("Content-Transfer-Encoding") && headerMode){
                     ;
                 } else if(line.length() == 0 && headerMode){
@@ -303,29 +313,72 @@ public class RequestProcessor implements Runnable {
                     // save content to file
                     if(isFile){
                         ByteBuffer buffer = null;
-                        if(isBinaryFile){
-                            ;
-                        } else{
-                            buffer = Configuration.getCharset().encode(line.concat(Utilities.getEOL()));
-                        }
+                        // no existing file, create a new one
                         if(fc == null){
                             String filename = new Random().nextLong() + ".tmp";
                             File tmpFile = new File(conf.getTmpFolder() + File.separator + filename);
                             requestBean.insertIntoMultipartBodyMap(multipartParamName, tmpFile.toString());
                             fos = new FileOutputStream(tmpFile);
                             fc = fos.getChannel();
+                            if(!isBinaryFile)
+                                buffer = Configuration.getCharset().encode(line);
+                        } else {
+                            // more non-binary content with line breaks
+                            if(!isBinaryFile)
+                                buffer = Configuration.getCharset().encode(Utilities.getEOL().concat(line));
+                        }
+                        
+                        if(isBinaryFile){
+                            // binary file
+                            int binFileIndex = headersLength + bodyIndex;
+                            ArrayList<Byte> binFileBytesList = new ArrayList<Byte>();
+                            while(true){
+                                byte b = rawRequestBytes[binFileIndex];
+                                if(b == '-' && rawRequestBytes[binFileIndex + 1] == '-'){
+                                    System.out.println((char)b);
+                                    break; 
+                                }
+                                binFileBytesList.add(b);
+                                binFileIndex++;
+                            }
+
+                            // create a byte array from bytearray list
+                            byte[] binFileBytes = new byte[binFileBytesList.size()];
+                            int index = 0;
+                            for(byte b : binFileBytesList){
+                                binFileBytes[index] = b;
+                                index++;
+                            }
+
+                            buffer = ByteBuffer.allocate(binFileBytesList.size());
+                            buffer.put(binFileBytes);
+                            buffer.flip();
                         }
                         fc.write(buffer);
                     } else {
+                        // not a file, read the value of the form field
                         requestBean.insertIntoMultipartBodyMap(multipartParamName, line);
                     }
                 }
+                
+                 // track the length of the body
+                bodyIndex += line.length() + Utilities.getEOL().length();
             }
             return;
         }
         
         // ******* request body in another format **********
         requestBean.setBody(body);
+    }
+    
+    private boolean isContentBinary(String mimeType) {
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
+            if(mimeType.equalsIgnoreCase(enumContentType.getContentType())){
+                return enumContentType.isBinary();
+            }
+        }
+        // mime type not known, default to non-binary
+        return false;
     }
     
     
@@ -341,6 +394,7 @@ public class RequestProcessor implements Runnable {
     
     private String boundary;
     private boolean isBody;
+    private int headersLength;
     private RequestBean requestBean;
     private ResponseBean responseBean;
     byte[] rawRequestBytes;

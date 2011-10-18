@@ -407,7 +407,7 @@ public class ResponseCreator{
                 return enumContentType.isCompressable();
             }
         }
-        return true;
+        return false;
     }
     
     private boolean isCacheable(String resourceType){
