@@ -26,8 +26,10 @@ public enum ContentTypeEnum {
     ZIP("application/zip", true, false, false),
     GZ("application/x-gzip", true, false, false),
     SWF("application/x-shockwave-flash", true, false, true),
-    MP4("video/mp4",true,false,false),
-    AVI("video/x-msvideo",true,false,false);
+    MP4("video/mp4", true, false, false),
+    EXE("application/octet-stream",true, false, false),
+    BIN("application/octet-stream",true, false, false),
+    AVI("video/x-msvideo", true, false, false);
 
     ContentTypeEnum(String contentType, boolean isBinary, boolean isCompressable, boolean isCacheable) {
         this.contentType = contentType;

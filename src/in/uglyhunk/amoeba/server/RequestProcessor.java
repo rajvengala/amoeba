@@ -263,6 +263,7 @@ public class RequestProcessor implements Runnable {
             boolean isBinaryFile = false;
             String multipartParamName = null;
             boolean headerMode = false;
+            boolean binFileRead = false;
             FileOutputStream fos = null;
             FileChannel fc = null;
             int bodyIndex = 0;
@@ -278,6 +279,8 @@ public class RequestProcessor implements Runnable {
                         fc = null;
                     }
                     headerMode = true;
+                    binFileRead = false;
+                    isBinaryFile = false;
                 } else if(line.contains("Content-Disposition:") && headerMode){
                     // Content-Disposition: form-data; name="submitBtn"
                     // Content-Disposition: form-data; name="myfile"; filename="temp.ext"
@@ -328,14 +331,17 @@ public class RequestProcessor implements Runnable {
                                 buffer = Configuration.getCharset().encode(Utilities.getEOL().concat(line));
                         }
                         
-                        if(isBinaryFile){
+                        if(isBinaryFile && !binFileRead){
                             // binary file
+                            binFileRead = true;
                             int binFileIndex = headersLength + bodyIndex;
                             ArrayList<Byte> binFileBytesList = new ArrayList<Byte>();
                             while(true){
                                 byte b = rawRequestBytes[binFileIndex];
-                                if(b == '-' && rawRequestBytes[binFileIndex + 1] == '-'){
-                                    System.out.println((char)b);
+                                if(b == '\r' && 
+                                   rawRequestBytes[binFileIndex + 1] == '\n' && 
+                                   rawRequestBytes[binFileIndex + 2] == '-' && 
+                                   rawRequestBytes[binFileIndex + 3] == '-'){
                                     break; 
                                 }
                                 binFileBytesList.add(b);
@@ -354,7 +360,8 @@ public class RequestProcessor implements Runnable {
                             buffer.put(binFileBytes);
                             buffer.flip();
                         }
-                        fc.write(buffer);
+                        if(buffer != null)
+                            fc.write(buffer);
                     } else {
                         // not a file, read the value of the form field
                         requestBean.insertIntoMultipartBodyMap(multipartParamName, line);
