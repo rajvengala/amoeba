@@ -5,7 +5,6 @@
 package in.uglyhunk.amoeba.server;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -100,6 +99,19 @@ public class PartialRequest {
         this.isBody = isBody;
     }
     
+    /**
+     * @return the serializedRequestFilepath
+     */
+    public String getSerializedRequestFilepath() {
+        return serializedRequestFilepath;
+    }
+    
+    public void clean()throws IOException{
+        if(serializedRequestChannel != null){
+            serializedRequestChannel.close();
+        }
+    }
+    
     private int totalBodyLength;
     private byte[] requestBytes;
     private int partialBodyLength;
@@ -108,4 +120,5 @@ public class PartialRequest {
     private FileChannel serializedRequestChannel;
     private FileOutputStream serializedRequestOutputStream;
     private static Configuration conf = Configuration.getInstance();
+
 }

@@ -6,6 +6,7 @@
 package in.uglyhunk.amoeba.server;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -32,7 +33,22 @@ public class RequestProcessor implements Runnable {
             requestBean = requestQueue.take();
             key = requestBean.getSelectionKey();
             
-            rawRequestBytes = partialRequestMap.get(key).getRequestBytes();
+            PartialRequest partialRequest = partialRequestMap.get(key);
+            
+            // Request size (including headers) is greater than 1 MB
+            // Partial Request in this would save the request to a file
+            // Make a memory-map of that file and parse the request
+            if(partialRequest.getTotalBodyLength() > Configuration.getLargeFileStartSize()){
+                File f = new File(partialRequest.getSerializedRequestFilepath());
+                int fileSize = (int)f.length();
+                FileInputStream fis = new FileInputStream(f);
+                FileChannel fc = fis.getChannel();
+                ByteBuffer byteBuffer = ByteBuffer.allocate(fileSize);
+                fc.read(byteBuffer);
+            } else {
+                rawRequestBytes = partialRequest.getRequestBytes();
+            }
+            
             partialRequestMap.remove(key);
             
             ByteBuffer readBuffer = ByteBuffer.allocate(rawRequestBytes.length);

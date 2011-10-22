@@ -484,11 +484,10 @@ public class Main {
             // create a request bean
             RequestBean reqBean = new RequestBean();
             reqBean.setSelectionKey(key);
-                                    
-            //System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
-            //System.out.println(new String(readBuffer.array()).split("\r\n")[0]);
-//            logger.log(Level.FINER, "{0} - {1}", new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
-//                                                        new String(readBuffer.array()).split("\r\n")[0]});
+            
+//            logger.log(Level.FINER, "{0} - {1}", 
+//                        new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
+//                        new String(readBuffer.array()).split("\r\n")[0]});
             
             // put the selection key of the request in the queue.
             // responses will be sent in the order as appeared in this queue
@@ -507,7 +506,8 @@ public class Main {
             // cancel the selection key and close the channel
             logger.log(Level.WARNING, ioe.toString(), ioe);
             idleSelectionKeyList.add(key);
-            selectionKeyTimestampMap.remove(key);
+            if(selectionKeyTimestampMap.containsKey(key))
+                selectionKeyTimestampMap.remove(key);
             return;
         } catch (InterruptedException ie) {
             logger.log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
@@ -768,21 +768,21 @@ public class Main {
         readBuffer.flip();
         readBuffer.get(readBufferBytes);
         
-        PartialRequest reqProps = null;
+        PartialRequest partialRequest = null;
         int totalBodyLength = 0;
         int bodyLength = 0;
 
         if(partialRequestMap.containsKey(key)){
             // part of this request has been read previously
-            reqProps = partialRequestMap.get(key);
-            totalBodyLength = reqProps.getTotalBodyLength();
-            bodyLength = reqProps.getPartialBodyLength();
+            partialRequest = partialRequestMap.get(key);
+            totalBodyLength = partialRequest.getTotalBodyLength();
+            bodyLength = partialRequest.getPartialBodyLength();
         } else {
             // this is a new request
-            reqProps = new PartialRequest();
-            partialRequestMap.put(key, reqProps);
+            partialRequest = new PartialRequest();
+            partialRequestMap.put(key, partialRequest);
         }
-        reqProps.setRequestBytes(readBufferBytes);
+        partialRequest.setRequestBytes(readBufferBytes);
         
         // check if the new request has Content-Length header
         // if exists, it is not a GET request
@@ -793,14 +793,14 @@ public class Main {
                                                    .split("Content-Length")[1]
                                                    .split(":")[1]
                                                    .split(Utilities.getHttpEOL())[0].trim());
-                reqProps.setTotalBodyLength(totalBodyLength);
+                partialRequest.setTotalBodyLength(totalBodyLength);
             }
             
             // body has never been read
             if(bodyLength == 0){
                 // check if end-of-headers marker is present
-                if(!reqProps.isBody() && rawRequest.contains(Utilities.getHttpEOL() + Utilities.getHttpEOL())){
-                    reqProps.setIsBody(true);
+                if(!partialRequest.isBody() && rawRequest.contains(Utilities.getHttpEOL() + Utilities.getHttpEOL())){
+                    partialRequest.setIsBody(true);
                     
                     // all headers have been received for the post request
                     // get the size of the post body present in this read
@@ -809,7 +809,7 @@ public class Main {
                     
                     // save it in a map
                     if(bodyLength < totalBodyLength){
-                        reqProps.setPartialBodyLength(bodyLength);
+                        partialRequest.setPartialBodyLength(bodyLength);
                         return false;
                     } else {
                         // full post request headers and body are received
@@ -819,14 +819,13 @@ public class Main {
             } 
             
             // readBuffer contains data, combine it with the existing buffer
-            reqProps.setPartialBodyLength(bytesRead);
-            if(reqProps.getPartialBodyLength() == totalBodyLength){
+            partialRequest.setPartialBodyLength(bytesRead);
+            if(partialRequest.getPartialBodyLength() == totalBodyLength){
+                partialRequest.clean();
                 return true;
             } else {
                 return false;
             }
-            
-            
         } else {
             // get request
             if(rawRequest.contains(Utilities.getHttpEOL() + Utilities.getHttpEOL())){
