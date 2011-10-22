@@ -32,7 +32,9 @@ public class RequestProcessor implements Runnable {
             requestBean = requestQueue.take();
             key = requestBean.getSelectionKey();
             
-            rawRequestBytes = requestBean.getRawRequestBytes();
+            rawRequestBytes = partialRequestMap.get(key).getRequestBytes();
+            partialRequestMap.remove(key);
+            
             ByteBuffer readBuffer = ByteBuffer.allocate(rawRequestBytes.length);
             readBuffer.put(rawRequestBytes);
             readBuffer.flip();
@@ -406,7 +408,10 @@ public class RequestProcessor implements Runnable {
     private ResponseBean responseBean;
     byte[] rawRequestBytes;
     private static Configuration conf = Configuration.getInstance();
-    private static LinkedBlockingQueue<RequestBean> requestQueue = RuntimeData.getRequestQueue();
-    private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap = RuntimeData.getResponseMap();
-    
+    private static LinkedBlockingQueue<RequestBean> requestQueue 
+                                                    = RuntimeData.getRequestQueue();
+    private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap 
+                                                    = RuntimeData.getResponseMap();
+    private static ConcurrentHashMap<SelectionKey, PartialRequest> partialRequestMap
+                                                    = RuntimeData.getPartialRequestMap();
 }

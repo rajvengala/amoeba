@@ -300,7 +300,7 @@ public class Main {
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
         RuntimeData.setSelectionKeyLargeFileMap(new HashMap<SelectionKey, Boolean>());
-        RuntimeData.setPartialRequestMap(new HashMap<SelectionKey, PartialRequest>());
+        RuntimeData.setPartialRequestMap(new ConcurrentHashMap<SelectionKey, PartialRequest>());
     }
     
     /**
@@ -481,12 +481,8 @@ public class Main {
                 return;
             }
             
-            byte[] readBufferBytes = partialRequestMap.get(key).getRequestBytes();
-            partialRequestMap.remove(key);
-                        
             // create a request bean
             RequestBean reqBean = new RequestBean();
-            reqBean.setRawRequestBytes(readBufferBytes);
             reqBean.setSelectionKey(key);
                                     
             //System.out.println("Read - " + System.nanoTime() + " - " + socketChannel.socket().getRemoteSocketAddress());
@@ -763,7 +759,7 @@ public class Main {
         }
     }
 
-    private static boolean decodeRequest(SelectionKey key, ByteBuffer readBuffer, int bytesRead) {
+    private static boolean decodeRequest(SelectionKey key, ByteBuffer readBuffer, int bytesRead) throws IOException {
         // convert request in bytebuffer to string format
         String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
         
@@ -871,5 +867,5 @@ public class Main {
     private static ArrayList<SelectionKey> idleSelectionKeyList;
     
     private static HashMap<SelectionKey, Boolean> selectionKeyLargeFileMap;
-    private static HashMap<SelectionKey, PartialRequest> partialRequestMap;
+    private static ConcurrentHashMap<SelectionKey, PartialRequest> partialRequestMap;
 }
