@@ -59,10 +59,10 @@ public class RequestProcessor implements Runnable {
 
     private void parseRequest(RequestBean requestBean, String rawRequest) throws Exception {
         requestBean.setRawRequest(rawRequest);
-        String requestLines[] = rawRequest.split(Utilities.getEOL());
+        String requestLines[] = rawRequest.split(Utilities.getHttpEOL());
                
         headersLength = 0; // includes empty-end-of-headers-newline
-        int eolLength = Utilities.getEOL().length();
+        int eolLength = Utilities.getHttpEOL().length();
         for(String line: requestLines) {
             if(!isBody){
                 processRequestHeaders(line);
@@ -268,7 +268,7 @@ public class RequestProcessor implements Runnable {
             FileChannel fc = null;
             int bodyIndex = 0;
                  
-            for(String line : body.split(Utilities.getEOL())){
+            for(String line : body.split(Utilities.getHttpEOL())){
                if(line.equals("--" + boundary) || line.equals("--" + boundary + "--")){
                     // close file channel
                     if(isFile) {
@@ -328,7 +328,7 @@ public class RequestProcessor implements Runnable {
                         } else {
                             // more non-binary content with line breaks
                             if(!isBinaryFile)
-                                buffer = Configuration.getCharset().encode(Utilities.getEOL().concat(line));
+                                buffer = Configuration.getCharset().encode(Utilities.getHttpEOL().concat(line));
                         }
                         
                         if(isBinaryFile && !binFileRead){
@@ -369,7 +369,7 @@ public class RequestProcessor implements Runnable {
                 }
                 
                  // track the length of the body
-                bodyIndex += line.length() + Utilities.getEOL().length();
+                bodyIndex += line.length() + Utilities.getHttpEOL().length();
             }
             return;
         }

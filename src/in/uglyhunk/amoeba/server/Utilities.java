@@ -24,7 +24,12 @@ public class Utilities {
         return EOL;
     }
 
+    public static String getHttpEOL(){
+        return HTTP_EOL;
+    }
+    
     private static final String EOL = System.getProperty("line.separator");
+    private static final String HTTP_EOL = "\r\n";
 }
 
 
