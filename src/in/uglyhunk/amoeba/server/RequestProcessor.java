@@ -6,10 +6,10 @@
 package in.uglyhunk.amoeba.server;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -34,23 +34,9 @@ public class RequestProcessor implements Runnable {
             key = requestBean.getSelectionKey();
             
             PartialRequest partialRequest = partialRequestMap.get(key);
-            
-            // Request size (including headers) is greater than 1 MB
-            // Partial Request in this would save the request to a file
-            // Make a memory-map of that file and parse the request
-            if(partialRequest.getTotalBodyLength() > Configuration.getLargeFileStartSize()){
-                File f = new File(partialRequest.getSerializedRequestFilepath());
-                int fileSize = (int)f.length();
-                FileInputStream fis = new FileInputStream(f);
-                FileChannel fc = fis.getChannel();
-                ByteBuffer byteBuffer = ByteBuffer.allocate(fileSize);
-                fc.read(byteBuffer);
-            } else {
-                rawRequestBytes = partialRequest.getRequestBytes();
-            }
-            
             partialRequestMap.remove(key);
             
+            rawRequestBytes = partialRequest.getRequestBytes();
             ByteBuffer readBuffer = ByteBuffer.allocate(rawRequestBytes.length);
             readBuffer.put(rawRequestBytes);
             readBuffer.flip();
@@ -89,6 +75,7 @@ public class RequestProcessor implements Runnable {
                 break;
             }
         }
+        
         // process body only if content length is > 0
         // get requests, hence, will not be processed for body
         int contentLength = requestBean.getContentLength();
@@ -264,6 +251,7 @@ public class RequestProcessor implements Runnable {
         // ******** If the post data is "application/x-www-form-urlencoded" encoded *********
         if(contentType != null && contentType.contains(Configuration.getFormEcoding())){
             requestBean.setBody(body);
+            // paramSeperator is &, by default
             String[] paramValueMaps = body.split(Configuration.getParamSeperator());
             for(String paramValueMap : paramValueMaps){
                 String group[] = paramValueMap.split("=");
@@ -423,6 +411,7 @@ public class RequestProcessor implements Runnable {
     private RequestBean requestBean;
     private ResponseBean responseBean;
     byte[] rawRequestBytes;
+    private MappedByteBuffer mappedByteBuffer;
     private static Configuration conf = Configuration.getInstance();
     private static LinkedBlockingQueue<RequestBean> requestQueue 
                                                     = RuntimeData.getRequestQueue();

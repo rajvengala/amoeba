@@ -821,7 +821,6 @@ public class Main {
             // readBuffer contains data, combine it with the existing buffer
             partialRequest.setPartialBodyLength(bytesRead);
             if(partialRequest.getPartialBodyLength() == totalBodyLength){
-                partialRequest.clean();
                 return true;
             } else {
                 return false;
