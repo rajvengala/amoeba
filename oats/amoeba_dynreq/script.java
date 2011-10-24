@@ -61,30 +61,30 @@ public class script extends IteratingVUserScript {
 		beginStep("MultipartPost Request", 0);
 		{
 			http.multipartPost(5, "http://169.254.153.53:1234/classes/TestDynRequests", http
-																																																																																																																																											.querystring(
-																																																																																																																																													http
-																																																																																																																																															.param(
-																																																																																																																																																	"one",
-																																																																																																																																																	"one&two"),
-																																																																																																																																													http
-																																																																																																																																															.param(
-																																																																																																																																																	"two",
-																																																																																																																																																	"two&three")), http
-																																																																																																																																											.postdata(
-																																																																																																																																													http
-																																																																																																																																															.param(
-																																																																																																																																																	"five",
-																																																																																																																																																	"five&six"),
-																																																																																																																																													http
-																																																																																																																																															.param(
-																																																																																																																																																	"six",
-																																																																																																																																																	"six&seven"),
-																																																																																																																																													http
-																																																																																																																																															.param(
-																																																																																																																																																	"fname",
-																																																																																																																																																	"C:\\Users\\rvengala\\Desktop\\XVI32.exe",
-																																																																																																																																																	"file1",
-																																																																																																																																																	"application/octet-stream")), null, "ASCII", "ASCII");
+																																																																																																																																																																			.querystring(
+																																																																																																																																																																					http
+																																																																																																																																																																							.param(
+																																																																																																																																																																									"one",
+																																																																																																																																																																									"one&two"),
+																																																																																																																																																																					http
+																																																																																																																																																																							.param(
+																																																																																																																																																																									"two",
+																																																																																																																																																																									"two&three")), http
+																																																																																																																																																																			.postdata(
+																																																																																																																																																																					http
+																																																																																																																																																																							.param(
+																																																																																																																																																																									"five",
+																																																																																																																																																																									"five&six"),
+																																																																																																																																																																					http
+																																																																																																																																																																							.param(
+																																																																																																																																																																									"six",
+																																																																																																																																																																									"six&seven"),
+																																																																																																																																																																					http
+																																																																																																																																																																							.param(
+																																																																																																																																																																									"fname",
+																																																																																																																																																																									"C:\\Users\\rvengala\\Desktop\\ATS Pack and Internal Adoption.pptx",
+																																																																																																																																																																									"ppt",
+																																																																																																																																																																									"application/octet-stream")), null, "ASCII", "ASCII");
 			{
 				http.assertText("multipart",
 						"Filename - D:\\myprojects\\amoeba\\dist\\amoeba\\tmp",
