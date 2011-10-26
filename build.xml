@@ -41,10 +41,6 @@
         <copy todir="${dist.dir}/amoeba/conf">
             <fileset dir="conf"/>
         </copy>
-
-        <copy todir="${dist.dir}/amoeba/error">
-            <fileset dir="error"/>
-        </copy>
     </target>
     <!--
 
