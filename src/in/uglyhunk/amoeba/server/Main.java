@@ -463,12 +463,13 @@ public class Main {
             socketChannel = (SocketChannel) key.channel();
             bytesRead = socketChannel.read(readBuffer);
             
+            // channel has reached the end of the stream
+            // remote socket shutdown was clean
             if (bytesRead == -1) {
-                // channel has reached the end of the stream
-                // remote socket shutdown was clean
                 idleSelectionKeyList.add(key);
                 return;
             }
+            
             // flip the buffer
             readBuffer.flip();
                         
@@ -490,13 +491,13 @@ public class Main {
 //                        new String(readBuffer.array()).split("\r\n")[0]});
             
             // put the selection key of the request in the queue.
-            // responses will be sent in the order as appeared in this queue
+            // responses will be sent back in the order as appeared in this queue
             selectionKeyQueue.put(key);
 
             // put the request in request queue
             requestQueue.put(reqBean);
 
-            // pass on the data read from the channel to
+            // pass on the request data read from the channel to
             // a request processing thread pool
             RequestProcessor requestProcessor = new RequestProcessor();
             requestProcessingThreadPool.execute(requestProcessor);

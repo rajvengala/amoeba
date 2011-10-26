@@ -6,12 +6,14 @@
 package in.uglyhunk.amoeba.server;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,30 +44,48 @@ public class RequestProcessor implements Runnable {
             readBuffer.flip();
             
             String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
-            parseRequest(requestBean, rawRequest);
-                                    
-            responseBean = new ResponseCreator(requestBean).process();
+            parseRequest(rawRequest);
+                
+            responseCreator = new ResponseCreator(requestBean);
+            responseBean = responseCreator.process();
             responseMap.put(key, responseBean);
+            
+            key.interestOps(SelectionKey.OP_WRITE);
+            key.selector().wakeup();
         
-        } catch(InterruptedException ie){
-            // This occurs when requestBean is being taken from the requestQueue.
-            // If this request is not removed, application gets stuck with more
-            // requests. In case of error, this has to be taken off the queue
+        } catch(FileNotFoundException fnfe){
+            Configuration.getLogger().log(Level.WARNING, fnfe.toString(), fnfe);
+            if(responseCreator == null){
+                responseCreator = new ResponseCreator(requestBean);
+            }
+            String errorCode = "_404";
+            try{
+                responseBean = responseCreator.processError(errorCode);
+            } catch(IOException ioe){}
+            responseMap.put(key, responseBean);
+            key.interestOps(SelectionKey.OP_WRITE);
+            key.selector().wakeup();
         } catch(Exception e){
             Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
-            responseBean = new ResponseCreator(requestBean).processError();
+            if(responseCreator == null){
+                responseCreator = new ResponseCreator(requestBean);
+            }
+            String errorCode = "_500";
+            try{
+                responseBean = responseCreator.processError(errorCode);
+            } catch(IOException ioe){}
             responseMap.put(key, responseBean);
-        } finally {
             key.interestOps(SelectionKey.OP_WRITE);
             key.selector().wakeup();
         }
     }
 
-    private void parseRequest(RequestBean requestBean, String rawRequest) throws Exception {
+    private void parseRequest(String rawRequest) throws IOException, ParseException {
         requestBean.setRawRequest(rawRequest);
         String requestLines[] = rawRequest.split(Utilities.getHttpEOL());
                
-        headersLength = 0; // includes empty-end-of-headers-newline
+        // includes empty-end-of-headers-newline
+        headersLength = 0; 
         int eolLength = Utilities.getHttpEOL().length();
         for(String line: requestLines) {
             if(!isBody){
@@ -80,13 +100,12 @@ public class RequestProcessor implements Runnable {
         // get requests, hence, will not be processed for body
         int contentLength = requestBean.getContentLength();
         if(contentLength > 0){
-            //String body = rawRequest.substring(headersLength, headersLength + contentLength);
             String body = rawRequest.substring(headersLength);
             processRequestBody(body);
         }
     }
 
-    private void processRequestHeaders(String line) throws Exception{
+    private void processRequestHeaders(String line) throws IOException, ParseException{
         String tokens[] = null;
         switch(matchRequestHeader(line)) {
             case GET:
@@ -245,7 +264,7 @@ public class RequestProcessor implements Runnable {
         }
     }
     
-    private void processRequestBody(String body) throws Exception{
+    private void processRequestBody(String body) throws IOException{
         String contentType = requestBean.getContentType();
 
         // ******** If the post data is "application/x-www-form-urlencoded" encoded *********
@@ -410,8 +429,8 @@ public class RequestProcessor implements Runnable {
     private int headersLength;
     private RequestBean requestBean;
     private ResponseBean responseBean;
+    private ResponseCreator responseCreator;
     byte[] rawRequestBytes;
-    private MappedByteBuffer mappedByteBuffer;
     private static Configuration conf = Configuration.getInstance();
     private static LinkedBlockingQueue<RequestBean> requestQueue 
                                                     = RuntimeData.getRequestQueue();
