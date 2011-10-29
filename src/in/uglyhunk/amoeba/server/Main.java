@@ -458,7 +458,8 @@ public class Main {
     private static void readDataFromChannel(SelectionKey key) {
         ByteBuffer readBuffer = ByteBuffer.allocate(conf.getReadBufferCapacity());
         SocketChannel socketChannel = null;
-        int bytesRead;
+        RequestBean requestBean = null;
+        int bytesRead = 0;
         try {
             socketChannel = (SocketChannel) key.channel();
             bytesRead = socketChannel.read(readBuffer);
@@ -483,8 +484,8 @@ public class Main {
             }
             
             // create a request bean
-            RequestBean reqBean = new RequestBean();
-            reqBean.setSelectionKey(key);
+            requestBean = new RequestBean();
+            requestBean.setSelectionKey(key);
             
 //            logger.log(Level.FINER, "{0} - {1}", 
 //                        new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
@@ -495,23 +496,35 @@ public class Main {
             selectionKeyQueue.put(key);
 
             // put the request in request queue
-            requestQueue.put(reqBean);
+            requestQueue.put(requestBean);
 
             // pass on the request data read from the channel to
             // a request processing thread pool
             RequestProcessor requestProcessor = new RequestProcessor();
             requestProcessingThreadPool.execute(requestProcessor);
             
-        } catch (IOException ioe) {
-            // connection abruptly closed
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, Utilities.stackTraceToString(e), e);
+        
             // cancel the selection key and close the channel
-            logger.log(Level.WARNING, ioe.toString(), ioe);
             idleSelectionKeyList.add(key);
+            
+            // remove selection key from the selectionKeyQueue
+            // this will not block other requests waiting in
+            // the queue from being served
+            if(selectionKeyQueue.contains(key)){
+                selectionKeyQueue.poll();
+            }
+            
+            // remove requestBean from the requestQueue, if it exists
+            // so that other request will be processed
+            if(requestQueue.contains(requestBean)){
+                requestQueue.poll();
+            }
+            
+            // remove the key from selectionKeyTimestampMap, if it exists
             if(selectionKeyTimestampMap.containsKey(key))
                 selectionKeyTimestampMap.remove(key);
-            return;
-        } catch (InterruptedException ie) {
-            logger.log(Level.SEVERE, Utilities.stackTraceToString(ie), ie);
         }
     }
 
@@ -649,11 +662,21 @@ public class Main {
             return;
         } catch (IOException ioe) {
             // connection abruptly closed
+           logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+        
             // cancel the selection key and close the channel
-            logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
             idleSelectionKeyList.add(key);
-            selectionKeyTimestampMap.remove(key);
-            return;
+            
+            // remove selection key from the selectionKeyQueue
+            // this will not block other requests waiting in
+            // the queue from being served
+            if(selectionKeyQueue.contains(key)){
+                selectionKeyQueue.poll();
+            }
+            
+            // remove the key from selectionKeyTimestampMap, if it exists
+            if(selectionKeyTimestampMap.containsKey(key))
+                selectionKeyTimestampMap.remove(key);
         }
     }
 
@@ -755,8 +778,20 @@ public class Main {
             }
         } catch(IOException ioe){
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+        
+            // cancel the selection key and close the channel
             idleSelectionKeyList.add(key);
-            selectionKeyLargeFileMap.remove(key);
+            
+            // remove selection key from the selectionKeyQueue
+            // this will not block other requests waiting in
+            // the queue from being served
+            if(selectionKeyQueue.contains(key)){
+                selectionKeyQueue.poll();
+            }
+            
+            // remove the key from selectionKeyTimestampMap, if it exists
+            if(selectionKeyTimestampMap.containsKey(key))
+                selectionKeyTimestampMap.remove(key);
         }
     }
 
