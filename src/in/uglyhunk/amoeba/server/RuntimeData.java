@@ -10,6 +10,7 @@ import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -198,6 +199,21 @@ public class RuntimeData {
         partialRequestMap = aPartialRequestMap;
     }
     
+    
+    /**
+     * @return the exceptionSelectionKeyList
+     */
+    public static CopyOnWriteArrayList<SelectionKey> getExceptionedSelectionKeyList() {
+        return exceptionedSelectionKeyList;
+    }
+
+    /**
+     * @param aExceptionSelectionKeyList the exceptionSelectionKeyList to set
+     */
+    public static void setExceptionedSelectionKeyList(CopyOnWriteArrayList<SelectionKey> aExceptionSelectionKeyList) {
+        exceptionedSelectionKeyList = aExceptionSelectionKeyList;
+    }
+    
     // ************* Members *****************
      
     /*
@@ -280,5 +296,6 @@ public class RuntimeData {
     private static ConcurrentHashMap<SelectionKey, PartialRequest> partialRequestMap;
 
     
+    private static CopyOnWriteArrayList<SelectionKey> exceptionedSelectionKeyList;
 
 }

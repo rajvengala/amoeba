@@ -32,6 +32,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Filter;
 
@@ -301,6 +302,7 @@ public class Main {
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
         RuntimeData.setSelectionKeyLargeFileMap(new HashMap<SelectionKey, Boolean>());
         RuntimeData.setPartialRequestMap(new ConcurrentHashMap<SelectionKey, PartialRequest>());
+        RuntimeData.setExceptionedSelectionKeyList(new CopyOnWriteArrayList<SelectionKey>());
     }
     
     /**
@@ -391,6 +393,7 @@ public class Main {
             idleSelectionKeyList = RuntimeData.getIdleSelectionKeyList();
             selectionKeyLargeFileMap = RuntimeData.getSelectionKeyLargeFileMap();
             partialRequestMap = RuntimeData.getPartialRequestMap();
+            exceptionedSelectionKeyList = RuntimeData.getExceptionedSelectionKeyList();
                     
             while (true) {
                 // wait for an event on one of the registered channels
@@ -417,6 +420,30 @@ public class Main {
                     }
                 }
 
+                // clean up selection keys which threw exceptions
+                // this clean happens only when RequestProcessor object
+                // uses selectionkey which is not valid for various reasons
+                ArrayList<SelectionKey> temp = new ArrayList<SelectionKey>();
+                Iterator<SelectionKey> itrKeys = exceptionedSelectionKeyList.iterator();
+                while(itrKeys.hasNext()){
+                    temp.add(itrKeys.next());
+                }
+                
+                for(SelectionKey key : temp){
+                    // remove this key from exceptionedSelectionKeyList
+                    exceptionedSelectionKeyList.remove(key);
+                    
+                    // add the key to the idle keys list.
+                    idleSelectionKeyList.add(key);
+                    
+                    // remove selection key from the selectionKeyQueue
+                    // this will not block other requests waiting in
+                    // the queue from being served
+                    if(selectionKeyQueue.contains(key)){
+                        selectionKeyQueue.poll();
+                    }
+                }
+                
                 // close idle channels in idleSelectionKeyList
                 for(SelectionKey key : idleSelectionKeyList){
                     SocketChannel socketChannel = (SocketChannel)key.channel();
@@ -662,7 +689,7 @@ public class Main {
             return;
         } catch (IOException ioe) {
             // connection abruptly closed
-           logger.log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+           logger.log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         
             // cancel the selection key and close the channel
             idleSelectionKeyList.add(key);
@@ -902,4 +929,5 @@ public class Main {
     
     private static HashMap<SelectionKey, Boolean> selectionKeyLargeFileMap;
     private static ConcurrentHashMap<SelectionKey, PartialRequest> partialRequestMap;
+    private static CopyOnWriteArrayList<SelectionKey> exceptionedSelectionKeyList;
 }

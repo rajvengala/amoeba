@@ -11,12 +11,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SelectionKey;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
@@ -53,8 +55,13 @@ public class RequestProcessor implements Runnable {
             key.interestOps(SelectionKey.OP_WRITE);
             key.selector().wakeup();
         
+        } catch(CancelledKeyException cke){
+            // discard this request and clean up other resources
+            // holding on this key
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(cke), cke);
+            exceptionedSelectionKeyList.add(key);
         } catch(FileNotFoundException fnfe){
-            Configuration.getLogger().log(Level.WARNING, fnfe.toString(), fnfe);
+            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(fnfe), fnfe);
             if(responseCreator == null){
                 responseCreator = new ResponseCreator(requestBean);
             }
@@ -438,4 +445,6 @@ public class RequestProcessor implements Runnable {
                                                     = RuntimeData.getResponseMap();
     private static ConcurrentHashMap<SelectionKey, PartialRequest> partialRequestMap
                                                     = RuntimeData.getPartialRequestMap();
+    private static CopyOnWriteArrayList<SelectionKey> exceptionedSelectionKeyList
+                                                    = RuntimeData.getExceptionedSelectionKeyList();
 }
