@@ -13,7 +13,7 @@ public class script extends IteratingVUserScript {
 	@ScriptService oracle.oats.scripting.modules.http.api.HTTPService http;
 	
 	public void initialize() throws Exception {
-		getVariables().set("url", "http://169.254.153.53:1234",
+		getVariables().set("url", "http://192.168.1.107:1234",
 				Variables.Scope.GLOBAL);
 		http
 				.setUserAgent("Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
