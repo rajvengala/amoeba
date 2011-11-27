@@ -19,6 +19,7 @@ public class script extends IteratingVUserScript {
 				.setUserAgent("Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
 		http.setAcceptLanguage("en-IN");
 		http.addValidator(new ResourceValidator());
+		
 	}
 	
 	/**

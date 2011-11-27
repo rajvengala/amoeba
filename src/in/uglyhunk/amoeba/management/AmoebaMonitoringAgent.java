@@ -8,7 +8,11 @@ import in.uglyhunk.amoeba.server.Configuration;
 import in.uglyhunk.amoeba.server.Utilities;
 import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 /**
@@ -30,7 +34,7 @@ public class AmoebaMonitoringAgent {
              // Uniquely identify the MBeans and register them with the platform MBeanServer 
              amoebaObjectName = new ObjectName("in.uglyhunk.amoeba.management:name=amoeba");
              mbs.registerMBean(njasMbean, amoebaObjectName);
-        } catch(Exception e) {
+        } catch(MalformedObjectNameException | InstanceAlreadyExistsException | MBeanRegistrationException | NotCompliantMBeanException e) {
             Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
         }
     }

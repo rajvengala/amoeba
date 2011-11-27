@@ -35,7 +35,7 @@ public class ResponseCreator{
         responseBean.setSelectionKey(request.getSelectionKey());
     }
     
-    public ResponseBean processError(String errorCode) throws IOException{
+    public ResponseBean processError(int errorCode) throws IOException{
         errorResponse = true;
         responseCode = errorCode;
         resourceType = "html";
@@ -91,7 +91,7 @@ public class ResponseCreator{
 
         // if in maintenance, serve 503 response for all the requests
         if(conf.isMaintenance()){
-            responseCode = "_503";
+            responseCode = 503;
             prepareErrorResponseBody(responseCode);
         } else {
             // non-maintenance mode operation
@@ -158,7 +158,7 @@ public class ResponseCreator{
                 if(contextDynamicInstanceMap.contains(contextName)){
                     dynamicInstanceMap = contextDynamicInstanceMap.get(contextName);
                 } else {
-                    dynamicInstanceMap = new HashMap<String, DynamicRequest>();
+                    dynamicInstanceMap = new HashMap<>();
                 }
                 dynamicInstanceMap.put(className, dynamicReq);
                 contextDynamicInstanceMap.put(contextName, dynamicInstanceMap);
@@ -183,7 +183,7 @@ public class ResponseCreator{
             }
 
             if(responseBean.getStatusCode() == null){
-                responseCode = "_200";
+                responseCode = 200;
             }
 
             responseBean.setResponseCacheTag("[Dynamic]");
@@ -201,7 +201,7 @@ public class ResponseCreator{
             String reqETag = requestBean.getETag();
             eTag = calculateETag();
             if(reqETag != null && reqETag.equals(eTag)){
-                responseCode = "_304";
+                responseCode = 304;
                 responseContentLength = 0;
                 responseBean.setBody(null);
                 return;
@@ -211,7 +211,7 @@ public class ResponseCreator{
             // if-modified-since header if exists
             long ifModifiedSince = requestBean.getIfModifiedSince();
             if(ifModifiedSince != 0 && lastModified == ifModifiedSince){
-                responseCode = "_304";
+                responseCode = 304;
                 responseContentLength = 0;
                 responseBean.setBody(null);
                 responseBean.setResponseCacheTag("[Conditional]");
@@ -233,7 +233,7 @@ public class ResponseCreator{
                     responseBodyByteBuffer.put(cachedResource);
                     responseBodyByteBuffer.flip();
 
-                    responseCode="_200";
+                    responseCode = 200;
                     responseContentLength = resourceSize;
                     responseBean.setResponseCacheTag("[Cache]");
                     resourcesReadFromCache++;
@@ -250,10 +250,10 @@ public class ResponseCreator{
                         int fileSize = resourceSize;
                         int fileEndPosition = resourceSize-1;
                         String rangeHeader = requestBean.getRange();
-                        responseCode="_200";
+                        responseCode = 200;
 
                         if(rangeHeader != null){
-                            responseCode="_206";
+                            responseCode = 206;
                             // Range: bytes=500-999, -2 (or) Range: bytes 500-999 (or) Range: bytes 500-
 
                             // 500-999 (or) 500-, (or) 500-900, -2
@@ -298,14 +298,15 @@ public class ResponseCreator{
                         responseBodyByteBuffer = ByteBuffer.allocate(resourceSize);
                         fc.read(responseBodyByteBuffer);
                         responseBodyByteBuffer.flip();
-                        responseCode = "_200";
+                        responseCode = 200;
                         responseContentLength = resourceSize;
                         fis.close();
                         responseBean.setResponseCacheTag("[Disk]");
                         resourcesReadFromDisk++;
 
                             // save the resource in the cache
-                        if(isCacheable(resourceType)){
+                        //if(isCacheable(resourceType)){
+                        if(ContentTypeEnum.isCacheable(resourceType)){
                             lruCache.put(eTag, responseBodyByteBuffer.array());
                         }
                     }
@@ -318,7 +319,8 @@ public class ResponseCreator{
 
         // ************* Compression *************
         // if compression is enabled and if the resource is compressable, do so now
-        if(conf.getCompression() && isCompressable(resourceType)){
+        //if(conf.getCompression() && isCompressable(resourceType)){
+        if(conf.getCompression() && ContentTypeEnum.isCompressable(resourceType)){
             compress(responseBodyByteBuffer.array());
         } else {
             // either compression is disabled or resource is not compressable
@@ -329,13 +331,16 @@ public class ResponseCreator{
 
     private void prepareResponseHeaders() {
         // set the status line based on response code;
-        String statusLine = statusLine(responseCode);
-        responseBean.setStatusCode(responseCode.split("_")[1]);
+        //String statusLine = statusLine(responseCode);
+        String statusLine = ResponseStatusLine.getStatusLine(responseCode);
+        //responseBean.setStatusCode(responseCode.split("_")[1]);
+        responseBean.setStatusCode(responseCode + "");
         responseBean.setStatusLine(statusLine);
         
         if(!errorResponse){
             // set last modified value and etag value, if resource is cacheable
-            if(isCacheable(resourceType)){
+            //if(isCacheable(resourceType)){
+            if(ContentTypeEnum.isCacheable(resourceType)){
                 responseBean.setLastModified(lastModified);
                 responseBean.setETag(eTag);
             }
@@ -343,14 +348,15 @@ public class ResponseCreator{
         
         // if content type is not set by dynamic request handler, set it here
         if(responseBean.getContentType() == null){
-            String contentType = contentType(resourceType);
+            //String contentType = contentType(resourceType);
+            String contentType = ContentTypeEnum.contentType(resourceType);
             responseBean.setContentType(contentType);
         }
         
         if(responseContentLength != 0){
             responseBean.setContentLength(responseContentLength + "");
             // if compression is enabled and resource is compressable, do it
-            if(conf.getCompression() && isCompressable(resourceType)){
+            if(conf.getCompression() && ContentTypeEnum.isCompressable(resourceType)){
                 responseBean.setContentEncoding("gzip");
             }
         }
@@ -366,62 +372,29 @@ public class ResponseCreator{
         return DatatypeConverter.printBase64Binary(digest);
     }
     
-    private String statusLine(String targetStatusCode){
-        for(ResponseStatusLineEnum enumStatusCode : ResponseStatusLineEnum.values()) {
-            if(targetStatusCode.equals(enumStatusCode.toString()))
-                return enumStatusCode.getStatusLine();
-
-        }
-        return null;
-    }
-
-    private String contentType(String resourceType) {
-        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
-            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
-                if(enumContentType.isBinary()) {
-                    return enumContentType.getContentType();
-                } else {
-                    return enumContentType.getContentType() + "; charset=UTF-8";
-                }
-            }
-        }
-        return "application/" + resourceType;
-    }
-    
-    private boolean isCompressable(String resourceType){
-        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
-            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
-                return enumContentType.isCompressable();
-            }
-        }
-        return false;
-    }
-    
-    private boolean isCacheable(String resourceType){
-        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
-            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
-                return enumContentType.isCacheable();
-            }
-        }
-        return true;
-    }
-
-    private void prepareErrorResponseBody(String respCode) throws IOException{
+    private void prepareErrorResponseBody(int respCode) throws IOException{
+        
         StringBuilder response = new StringBuilder();
-        if(respCode.equalsIgnoreCase("_404")){
-            response.append("<b>404 - Page Not Found</b>")
+        switch(respCode){
+            case 404:
+                response.append("<b>404 - Page Not Found</b>")
                     .append("<br/><hr/>")
                     .append("Could not find the requested resource - ")
                     .append(requestBean.getRelativeResourcePath());
-        } else if(respCode.equalsIgnoreCase("_500")){
-            response.append("<b>500 - Internal Server Error</b>")
+                break;
+        
+            case 500:
+                response.append("<b>500 - Internal Server Error</b>")
                     .append("<br/><hr/>")
                     .append("Error while processing the request for the resource - ")
                     .append(requestBean.getRelativeResourcePath());
-        } else if(respCode.equalsIgnoreCase("_503")){
-            response.append("<b>500 - Service Unavailable</b>")
+                break;
+            
+            case 503:
+                response.append("<b>503 - Service Unavailable</b>")
                     .append("<br/><hr/>")
                     .append("Server in maintenance mode");
+                break;
         }
         
         byte responseBytes[] = response.toString().getBytes(Configuration.getCharset());
@@ -433,7 +406,8 @@ public class ResponseCreator{
         responseBean.setResponseCacheTag("[Memory]");
         
         // if compression is enabled and if the resource is compressable, do so now
-        if(conf.getCompression() && isCompressable(resourceType)){
+        //if(conf.getCompression() && isCompressable(resourceType)){
+        if(conf.getCompression() && ContentTypeEnum.isCompressable(resourceType)){
             compress(responseBodyByteBuffer.array());
         } else {
             // either compression is disabled or resource is not compressable
@@ -444,10 +418,10 @@ public class ResponseCreator{
     
     private void compress(byte[] content)throws IOException {
         ByteArrayOutputStream zippedStream = new ByteArrayOutputStream();
-        GZIPOutputStream gzipos = new GZIPOutputStream(zippedStream);
-        gzipos.write(content, 0, content.length);
-        gzipos.flush();
-        gzipos.close();
+        try (GZIPOutputStream gzipos = new GZIPOutputStream(zippedStream)) {
+            gzipos.write(content, 0, content.length);
+            gzipos.flush();
+        }
         
         responseContentLength = zippedStream.size();
         ByteBuffer zippedResponseByteBuffer = ByteBuffer.allocate(responseContentLength);
@@ -465,7 +439,7 @@ public class ResponseCreator{
         return resourcesReadFromCache;
     }
     
-    private String responseCode;
+    private int responseCode;
     private int responseContentLength;
     private RequestBean requestBean;
     private ResponseBean responseBean;

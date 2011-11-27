@@ -10,7 +10,7 @@ package in.uglyhunk.amoeba.server;
  */
 public enum ContentTypeEnum {
 
-    //filextension("mimetype,binary,compess,cache)
+    //file-extension("mimetype,binary,compess,cache)
     HTML("text/html", false, true, false),
     HTM("text/html", false, true, false),
     TXT("text/plain", false, true, false),
@@ -38,21 +38,47 @@ public enum ContentTypeEnum {
         this.isCacheable = isCacheable;
     }
 
-    public String getContentType() {
-        return this.contentType;
+    public static String contentType(String resourceType) {
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
+            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
+                if(enumContentType.isBinary) {
+                    return enumContentType.contentType;
+                } else {
+                    return enumContentType.contentType + "; charset=UTF-8";
+                }
+            }
+        }
+        return "application/" + resourceType;
     }
-
-    public boolean isBinary() {
-        return this.isBinary;
+    
+    public static boolean isCompressable(String resourceType){
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
+            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
+                return enumContentType.isCompressable;
+            }
+        }
+        return false;
     }
-
-    public boolean isCompressable() {
-        return this.isCompressable;
+    
+    public static boolean isCacheable(String resourceType){
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
+            if(resourceType.equalsIgnoreCase(enumContentType.toString())){
+                return enumContentType.isCacheable;
+            }
+        }
+        return true;
     }
-
-    public boolean isCacheable() {
-        return this.isCacheable;
+    
+    public static boolean isContentBinary(String mimeType) {
+        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
+            if(mimeType.equalsIgnoreCase(enumContentType.contentType)){
+                return enumContentType.isBinary;
+            }
+        }
+        // mime type not known, default to non-binary
+        return false;
     }
+    
     private String contentType;
     private boolean isBinary;
     private boolean isCompressable;

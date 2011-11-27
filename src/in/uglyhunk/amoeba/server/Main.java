@@ -29,7 +29,6 @@ import java.util.logging.Logger;
 import in.uglyhunk.amoeba.dyn.AmoebaClassLoader;
 import in.uglyhunk.amoeba.dyn.DynamicRequest;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -78,10 +77,8 @@ public class Main {
     private static void loadAmoebaConfig() {
         // initialize configuration
         conf = Configuration.getInstance();
-        
-        // read initial configuration
-        logger = Configuration.getLogger();
-                
+    
+        // read amoeba configuration
         sdf = Configuration.getSimpleDateFormat();
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         
@@ -228,8 +225,8 @@ public class Main {
         
         // list all the files inside the document root 
         File docRootFiles[] = documentRoot.listFiles();
-        ArrayList<String> contextConfPaths = new ArrayList<String>();
-        ArrayList<String> contexts = new ArrayList<String>();
+        ArrayList<String> contextConfPaths = new ArrayList<>();
+        ArrayList<String> contexts = new ArrayList<>();
         if(!conf.isVirtualHost()){
             // eg: /var/www/default/CLASSES/context.conf
             String context = Configuration.getDefaultContext();
@@ -261,7 +258,7 @@ public class Main {
                 contextProps.load(reader);
 
                 // Following Hashmap is the runtime state of context.conf
-                HashMap<String, String> dynamicClassesMap = new HashMap<String, String>();
+                HashMap<String, String> dynamicClassesMap = new HashMap<>();
                 Iterator<Entry<Object, Object>> itr = contextProps.entrySet().iterator();
                 while(itr.hasNext()){
                     Entry<Object, Object> itrEntry = itr.next();
@@ -355,7 +352,7 @@ public class Main {
     }
     
     private static void startJMXAgent(){
-        new AmoebaMonitoringAgent();
+        amoebaJMXAgent = new AmoebaMonitoringAgent();
     }
 
     /**
@@ -423,7 +420,7 @@ public class Main {
                 // clean up selection keys which threw exceptions
                 // this clean happens only when RequestProcessor object
                 // uses selectionkey which is not valid for various reasons
-                ArrayList<SelectionKey> temp = new ArrayList<SelectionKey>();
+                ArrayList<SelectionKey> temp = new ArrayList<>();
                 Iterator<SelectionKey> itrKeys = exceptionedSelectionKeyList.iterator();
                 while(itrKeys.hasNext()){
                     temp.add(itrKeys.next());
@@ -454,10 +451,8 @@ public class Main {
                 idleSelectionKeyList.clear();
                 
             }
-        } catch(ClosedChannelException cce){
+        } catch( IOException cce){
             logger.log(Level.SEVERE, Utilities.stackTraceToString(cce), cce);
-        } catch(IOException ioe){
-            logger.log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
     }
    
@@ -530,7 +525,7 @@ public class Main {
             RequestProcessor requestProcessor = new RequestProcessor();
             requestProcessingThreadPool.execute(requestProcessor);
             
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             logger.log(Level.SEVERE, Utilities.stackTraceToString(e), e);
         
             // cancel the selection key and close the channel
@@ -912,9 +907,10 @@ public class Main {
     private static ServerSocketChannel serverSocketChannel;
     private static File logDir;
     private static SimpleDateFormat sdf;
-    private static Logger logger;
+    private static final Logger logger = Configuration.getLogger();;
     private static Configuration conf;
     private static int channelTimeout;
+    private static AmoebaMonitoringAgent amoebaJMXAgent;
     
     // As of now only single thread modified this class variable
     private static volatile int activeChannelsCount;

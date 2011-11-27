@@ -407,8 +407,8 @@ public class RequestBean {
     private SelectionKey selectionKey;
     private long ifModifiedSince;
     private String eTag;
-    private HashMap<String, String> queryStringMap = new HashMap<String, String>();
-    private HashMap<String, String> postBodyMap = new HashMap<String, String>();
-    private HashMap<String, String> multiPartBodyMap = new HashMap<String, String>();
+    private HashMap<String, String> queryStringMap = new HashMap<>();
+    private HashMap<String, String> postBodyMap = new HashMap<>();
+    private HashMap<String, String> multiPartBodyMap = new HashMap<>();
 
 }

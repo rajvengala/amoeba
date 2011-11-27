@@ -65,9 +65,9 @@ public class RequestProcessor implements Runnable {
             if(responseCreator == null){
                 responseCreator = new ResponseCreator(requestBean);
             }
-            String errorCode = "_404";
+            int responseCode = 404;
             try{
-                responseBean = responseCreator.processError(errorCode);
+                responseBean = responseCreator.processError(responseCode);
             } catch(IOException ioe){}
             responseMap.put(key, responseBean);
             key.interestOps(SelectionKey.OP_WRITE);
@@ -77,9 +77,9 @@ public class RequestProcessor implements Runnable {
             if(responseCreator == null){
                 responseCreator = new ResponseCreator(requestBean);
             }
-            String errorCode = "_500";
+            int responseCode = 500;
             try{
-                responseBean = responseCreator.processError(errorCode);
+                responseBean = responseCreator.processError(responseCode);
             } catch(IOException ioe){}
             responseMap.put(key, responseBean);
             key.interestOps(SelectionKey.OP_WRITE);
@@ -114,9 +114,18 @@ public class RequestProcessor implements Runnable {
 
     private void processRequestHeaders(String line) throws IOException, ParseException{
         String tokens[] = null;
-        switch(matchRequestHeader(line)) {
-            case GET:
-            case POST:
+        
+        String requestHeaderLineTag = "";
+        if(line.contains(":"))
+            // results in request header first word eg: HOST, COOKIE etc
+            requestHeaderLineTag = line.split(":")[0];
+        else
+            // results in HTTP method name eg: GET, POST etc
+            requestHeaderLineTag = line.split(" ")[0];
+        
+        switch(requestHeaderLineTag) {
+            case "GET":
+            case "POST":
                 tokens = line.split(" ");
                 if(tokens.length == 3) {
                     // http method
@@ -150,42 +159,42 @@ public class RequestProcessor implements Runnable {
                 }
                 break;
 
-            case ACCEPT:
+            case "Accept":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setAccept(tokens[1]);
                 }
                 break;
 
-            case ACCEPT_ENCODING:
+            case "Accept-Encoding":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setAcceptEncoding(tokens[1]);
                 }
                 break;
 
-            case ACCEPT_LANGUAGE:
+            case "Accept-Language":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setAcceptLanguage(tokens[1]);
                 }
                 break;
 
-            case ACCEPT_CHARSET:
+            case "Accept-Charset":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setAcceptLanguage(tokens[1]);
                 }
                 break;
 
-            case USER_AGENT:
+            case "User-Agent":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setUserAgent(tokens[1]);
                 }
                 break;
 
-            case CONTENT_TYPE:
+            case "Content-Type":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setContentType(tokens[1]);
@@ -196,35 +205,35 @@ public class RequestProcessor implements Runnable {
                 }
                 break;
 
-            case CONTENT_LENGTH:
+            case "Content-Length":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setContentLength(tokens[1].trim());
                 }
                 break;
 
-            case CACHE_CONTROL:
+            case "Cache-Control":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setCacheControl(tokens[1]);
                 }
                 break;
 
-            case CONNECTION:
+            case "Connection":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setConnection(tokens[1].trim());
                 }
                 break;
 
-            case COOKIE:
+            case "Cookie":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setCookie(tokens[1].trim());
                 }
                 break;
 
-            case IF_MODIFIED_SINCE:
+            case "IF-MODIFIED-SINCE":
                 tokens = line.split(":");
                 if(tokens.length == 2){
                     String ifModifiedSince = tokens[1].trim();
@@ -233,7 +242,7 @@ public class RequestProcessor implements Runnable {
                 }
                 break;
 
-            case IF_NONE_MATCH:
+            case "IF-NONE-MATCH":
                 tokens = line.split(":");
                 if(tokens.length == 2){
                     // ETag in request header is enclosed in double quotes
@@ -241,21 +250,21 @@ public class RequestProcessor implements Runnable {
                 }
                 break;
 
-            case HOST:
+            case "Host":
                 tokens = line.split(":");
                 if(tokens.length >= 2) {
                     requestBean.setHost(tokens[1].trim());
                 }
                 break;
 
-            case REFERER:
+            case "Referer":
                 tokens = line.split(":");
                 if(tokens.length == 2) {
                     requestBean.setReferer(tokens[1].trim());
                 }
                 break;
 
-            case RANGE:
+            case "Range":
                 // Range: bytes=0-
                 // Range: bytes=200-700
                 // Range: bytes=200-700, 2-
@@ -335,7 +344,8 @@ public class RequestProcessor implements Runnable {
                     String tokens[] = line.split("Content-Type:");
                     if(tokens.length == 2){
                         String mimeType = tokens[1].trim();
-                        isBinaryFile = isContentBinary(mimeType);
+                        //isBinaryFile = isContentBinary(mimeType);
+                        isBinaryFile = ContentTypeEnum.isContentBinary(mimeType);
                     } else {
                         // mime type not specified, default to non-binary
                         isBinaryFile = false;
@@ -367,7 +377,7 @@ public class RequestProcessor implements Runnable {
                             // binary file
                             binFileRead = true;
                             int binFileIndex = headersLength + bodyIndex;
-                            ArrayList<Byte> binFileBytesList = new ArrayList<Byte>();
+                            ArrayList<Byte> binFileBytesList = new ArrayList<>();
                             while(true){
                                 byte b = rawRequestBytes[binFileIndex];
                                 if(b == '\r' && 
@@ -409,28 +419,7 @@ public class RequestProcessor implements Runnable {
         // ******* request body in another format **********
         requestBean.setBody(body);
     }
-    
-    private boolean isContentBinary(String mimeType) {
-        for(ContentTypeEnum enumContentType : ContentTypeEnum.values()){
-            if(mimeType.equalsIgnoreCase(enumContentType.getContentType())){
-                return enumContentType.isBinary();
-            }
-        }
-        // mime type not known, default to non-binary
-        return false;
-    }
-    
-    
-    private RequestHeadersEnum matchRequestHeader(String requestLine){
-        for(RequestHeadersEnum tokenEnum : RequestHeadersEnum.values()) {
-            if(requestLine.contains(tokenEnum.getRequestHeaderName())){
-                return tokenEnum;
-            }
-         }
-         return RequestHeadersEnum.NONE;
-    }
-  
-    
+
     private String boundary;
     private boolean isBody;
     private int headersLength;
