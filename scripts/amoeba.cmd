@@ -1,8 +1,8 @@
-set AMOEBA_HOME=D:\myprojects\amoeba\dist\amoeba
+set AMOEBA_HOME=D:\to_backup\my_projects\amoeba\dist\amoeba
 
-set JDK_HOME=C:\Program Files (x86)\Java\jdk1.6.0_25
+set JAVA_HOME=C:\Program Files\Java\jre7
 
-set PATH=%JDK_HOME%\bin
+set PATH=%JAVA_HOME%\bin
 
 java -classpath %AMOEBA_HOME%\lib\amoeba.jar in.uglyhunk.amoeba.server.Main
 
