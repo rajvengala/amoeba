@@ -5,6 +5,8 @@
 
 package in.uglyhunk.amoeba.server;
 
+import in.uglyhunk.amoeba.configuration.KernelProps;
+import in.uglyhunk.amoeba.configuration.ResourceProps;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -77,7 +79,7 @@ public class ResponseCreator{
         if(conf.isVirtualHost()) 
             contextName = requestBean.getHost();
         else
-            contextName = Configuration.getDefaultContext();
+            contextName = KernelProps.getDefaultContext();
 
         // resourcePath will be in one of the follows formats
         // If virtual host is disabled
@@ -108,7 +110,7 @@ public class ResponseCreator{
         // ResourcePath format - <DOC_ROOT>/<hostname_in_request_header>/classes/getStockQuote
         // If the resourcePath contains "clases" string,
         // pass them to context classes in "classes" sub-directory
-        String dynClassTag = Configuration.getDynamicClassTag();
+        String dynClassTag = KernelProps.getDynamicClassTag();
         if(absoluteResourcePath.toString().contains(dynClassTag)) {
             DynamicRequest dynamicReq = null;
             // Extracts target class name from the resourcePath
@@ -172,7 +174,7 @@ public class ResponseCreator{
             // retreive the response body set by the user
             // from the responseBean instance
             String rawBody = responseBean.getRespBody();
-            byte rawBodyBytes[] = rawBody.getBytes(Configuration.getCharset());
+            byte rawBodyBytes[] = rawBody.getBytes(KernelProps.getCharset());
             responseBodyByteBuffer = ByteBuffer.allocate(rawBodyBytes.length);
             responseBodyByteBuffer.put(rawBodyBytes);
             responseBodyByteBuffer.flip();
@@ -245,7 +247,7 @@ public class ResponseCreator{
 
                     // if file size is greater than 1 MB, let a 
                     // seperate thread handle the data serving part
-                    if(resourceSize > Configuration.getLargeFileStartSize()){
+                    if(resourceSize > KernelProps.getLargeFileStartSize()){
                         int fileStartPosition = 0;
                         int fileSize = resourceSize;
                         int fileEndPosition = resourceSize-1;
@@ -304,9 +306,9 @@ public class ResponseCreator{
                         responseBean.setResponseCacheTag("[Disk]");
                         resourcesReadFromDisk++;
 
-                            // save the resource in the cache
-                        //if(isCacheable(resourceType)){
-                        if(ContentTypeEnum.isCacheable(resourceType)){
+                        // save the resource in the cache
+                        //if(ContentTypeEnum.isCacheable(resourceType)){
+                        if(ResourceProps.isCacheable(resourceType)){
                             lruCache.put(eTag, responseBodyByteBuffer.array());
                         }
                     }
@@ -320,7 +322,7 @@ public class ResponseCreator{
         // ************* Compression *************
         // if compression is enabled and if the resource is compressable, do so now
         //if(conf.getCompression() && isCompressable(resourceType)){
-        if(conf.getCompression() && ContentTypeEnum.isCompressable(resourceType)){
+        if(conf.getCompression() && ResourceProps.isCompressable(resourceType)){
             compress(responseBodyByteBuffer.array());
         } else {
             // either compression is disabled or resource is not compressable
@@ -340,7 +342,7 @@ public class ResponseCreator{
         if(!errorResponse){
             // set last modified value and etag value, if resource is cacheable
             //if(isCacheable(resourceType)){
-            if(ContentTypeEnum.isCacheable(resourceType)){
+            if(ResourceProps.isCacheable(resourceType)){
                 responseBean.setLastModified(lastModified);
                 responseBean.setETag(eTag);
             }
@@ -349,24 +351,24 @@ public class ResponseCreator{
         // if content type is not set by dynamic request handler, set it here
         if(responseBean.getContentType() == null){
             //String contentType = contentType(resourceType);
-            String contentType = ContentTypeEnum.contentType(resourceType);
+            String contentType = ResourceProps.contentType(resourceType);
             responseBean.setContentType(contentType);
         }
         
         if(responseContentLength != 0){
             responseBean.setContentLength(responseContentLength + "");
             // if compression is enabled and resource is compressable, do it
-            if(conf.getCompression() && ContentTypeEnum.isCompressable(resourceType)){
+            if(conf.getCompression() && ResourceProps.isCompressable(resourceType)){
                 responseBean.setContentEncoding("gzip");
             }
         }
-        responseBean.setServer(Configuration.getSeverHeader());
+        responseBean.setServer(KernelProps.getSeverHeader());
         return;
     }
 
     private String calculateETag() throws Exception {
         String eTagSource = absoluteResourcePath.toString() + lastModified;
-        byte[] eTagSouceBytes = eTagSource.getBytes(Configuration.getCharset());
+        byte[] eTagSouceBytes = eTagSource.getBytes(KernelProps.getCharset());
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         byte[] digest = md5.digest(eTagSouceBytes);
         return DatatypeConverter.printBase64Binary(digest);
@@ -397,7 +399,7 @@ public class ResponseCreator{
                 break;
         }
         
-        byte responseBytes[] = response.toString().getBytes(Configuration.getCharset());
+        byte responseBytes[] = response.toString().getBytes(KernelProps.getCharset());
         ByteBuffer responseBodyByteBuffer = ByteBuffer.allocate(responseBytes.length);
         responseBodyByteBuffer.put(responseBytes);
         responseBodyByteBuffer.flip();
@@ -407,7 +409,7 @@ public class ResponseCreator{
         
         // if compression is enabled and if the resource is compressable, do so now
         //if(conf.getCompression() && isCompressable(resourceType)){
-        if(conf.getCompression() && ContentTypeEnum.isCompressable(resourceType)){
+        if(conf.getCompression() && ResourceProps.isCompressable(resourceType)){
             compress(responseBodyByteBuffer.array());
         } else {
             // either compression is disabled or resource is not compressable
@@ -451,7 +453,7 @@ public class ResponseCreator{
     private String contextName;
     private boolean errorResponse;
     
-    private static Configuration conf = Configuration.getInstance();
+    private static KernelProps conf = KernelProps.getInstance();
     private static ConcurrentHashMap<String, AmoebaClassLoader> classLoaderMap = RuntimeData.getClassLoaderMap();
     private static ConcurrentHashMap<String, HashMap<String, String>> contextMap = RuntimeData.getContextMap();
     private static ConcurrentHashMap<String, HashMap<String, DynamicRequest>> contextDynamicInstanceMap 

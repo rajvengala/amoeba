@@ -5,6 +5,8 @@
 
 package in.uglyhunk.amoeba.server;
 
+import in.uglyhunk.amoeba.configuration.KernelProps;
+import in.uglyhunk.amoeba.configuration.ResourceProps;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -45,7 +47,7 @@ public class RequestProcessor implements Runnable {
             readBuffer.put(rawRequestBytes);
             readBuffer.flip();
             
-            String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
+            String rawRequest = KernelProps.getCharset().decode(readBuffer).toString();
             parseRequest(rawRequest);
                 
             responseCreator = new ResponseCreator(requestBean);
@@ -58,10 +60,10 @@ public class RequestProcessor implements Runnable {
         } catch(CancelledKeyException cke){
             // discard this request and clean up other resources
             // holding on this key
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(cke), cke);
+            KernelProps.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(cke), cke);
             exceptionedSelectionKeyList.add(key);
         } catch(FileNotFoundException fnfe){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(fnfe), fnfe);
+            KernelProps.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(fnfe), fnfe);
             if(responseCreator == null){
                 responseCreator = new ResponseCreator(requestBean);
             }
@@ -73,7 +75,7 @@ public class RequestProcessor implements Runnable {
             key.interestOps(SelectionKey.OP_WRITE);
             key.selector().wakeup();
         } catch(Exception e){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
+            KernelProps.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(e), e);
             if(responseCreator == null){
                 responseCreator = new ResponseCreator(requestBean);
             }
@@ -143,11 +145,11 @@ public class RequestProcessor implements Runnable {
                         requestBean.setQueryString(queryString);
 
                         // split query string using "&" as seperator
-                        String[] paramValueMaps = queryString.split(Configuration.getParamSeperator());
+                        String[] paramValueMaps = queryString.split(KernelProps.getParamSeperator());
                         for(String paramValueMap : paramValueMaps){
                             String group[] = paramValueMap.split("=");
-                            String param = URLDecoder.decode(group[0], Configuration.getCharsetName());
-                            String value = URLDecoder.decode(group[1], Configuration.getCharsetName());
+                            String param = URLDecoder.decode(group[0], KernelProps.getCharsetName());
+                            String value = URLDecoder.decode(group[1], KernelProps.getCharsetName());
                             requestBean.insertIntoQueryStringMap(param, value);
                         }
                     } else {
@@ -237,7 +239,7 @@ public class RequestProcessor implements Runnable {
                 tokens = line.split(":");
                 if(tokens.length == 2){
                     String ifModifiedSince = tokens[1].trim();
-                    long lastModifiedTime = Configuration.getSimpleDateFormat().parse(ifModifiedSince).getTime();
+                    long lastModifiedTime = KernelProps.getSimpleDateFormat().parse(ifModifiedSince).getTime();
                     requestBean.setIfModifiedSince(lastModifiedTime);
                 }
                 break;
@@ -284,21 +286,21 @@ public class RequestProcessor implements Runnable {
         String contentType = requestBean.getContentType();
 
         // ******** If the post data is "application/x-www-form-urlencoded" encoded *********
-        if(contentType != null && contentType.contains(Configuration.getFormEcoding())){
+        if(contentType != null && contentType.contains(KernelProps.getFormEcoding())){
             requestBean.setBody(body);
             // paramSeperator is &, by default
-            String[] paramValueMaps = body.split(Configuration.getParamSeperator());
+            String[] paramValueMaps = body.split(KernelProps.getParamSeperator());
             for(String paramValueMap : paramValueMaps){
                 String group[] = paramValueMap.split("=");
-                String param = URLDecoder.decode(group[0], Configuration.getCharsetName());
-                String value = URLDecoder.decode(group[1], Configuration.getCharsetName());
+                String param = URLDecoder.decode(group[0], KernelProps.getCharsetName());
+                String value = URLDecoder.decode(group[1], KernelProps.getCharsetName());
                 requestBean.insertIntoPostBodyMap(param, value);
             }
             return;
         } 
         
         // ******** If the post data is "multipart/form-data" encoded ***********
-        if(contentType != null && contentType.contains(Configuration.getMultipartFormEncoding())){
+        if(contentType != null && contentType.contains(KernelProps.getMultipartFormEncoding())){
             requestBean.setBody(body);
             boolean isFile = false;
             boolean isBinaryFile = false;
@@ -344,8 +346,7 @@ public class RequestProcessor implements Runnable {
                     String tokens[] = line.split("Content-Type:");
                     if(tokens.length == 2){
                         String mimeType = tokens[1].trim();
-                        //isBinaryFile = isContentBinary(mimeType);
-                        isBinaryFile = ContentTypeEnum.isContentBinary(mimeType);
+                        isBinaryFile = ResourceProps.isContentBinary(mimeType);
                     } else {
                         // mime type not specified, default to non-binary
                         isBinaryFile = false;
@@ -366,11 +367,11 @@ public class RequestProcessor implements Runnable {
                             fos = new FileOutputStream(tmpFile);
                             fc = fos.getChannel();
                             if(!isBinaryFile)
-                                buffer = Configuration.getCharset().encode(line);
+                                buffer = KernelProps.getCharset().encode(line);
                         } else {
                             // more non-binary content with line breaks
                             if(!isBinaryFile)
-                                buffer = Configuration.getCharset().encode(Utilities.getHttpEOL().concat(line));
+                                buffer = KernelProps.getCharset().encode(Utilities.getHttpEOL().concat(line));
                         }
                         
                         if(isBinaryFile && !binFileRead){
@@ -427,7 +428,7 @@ public class RequestProcessor implements Runnable {
     private ResponseBean responseBean;
     private ResponseCreator responseCreator;
     byte[] rawRequestBytes;
-    private static Configuration conf = Configuration.getInstance();
+    private static KernelProps conf = KernelProps.getInstance();
     private static LinkedBlockingQueue<RequestBean> requestQueue 
                                                     = RuntimeData.getRequestQueue();
     private static ConcurrentHashMap<SelectionKey, ResponseBean> responseMap 

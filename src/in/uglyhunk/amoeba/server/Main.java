@@ -1,5 +1,7 @@
 package in.uglyhunk.amoeba.server;
 
+import in.uglyhunk.amoeba.configuration.KernelProps;
+import in.uglyhunk.amoeba.configuration.ResourceProps;
 import in.uglyhunk.amoeba.management.AmoebaMonitoringAgent;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -34,6 +36,14 @@ import java.util.HashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Filter;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Contains the <b>main</b> method to run the application server
@@ -76,10 +86,10 @@ public class Main {
      */
     private static void loadAmoebaConfig() {
         // initialize configuration
-        conf = Configuration.getInstance();
+        conf = KernelProps.getInstance();
     
         // read amoeba configuration
-        sdf = Configuration.getSimpleDateFormat();
+        sdf = KernelProps.getSimpleDateFormat();
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         
         String amoebaHome = System.getenv("AMOEBA_HOME");
@@ -89,59 +99,93 @@ public class Main {
             System.exit(1);
         }
 
-        amoebaProps = new Properties();
-        String propFilePath = amoebaHome + File.separator + "conf" + File.separator + Configuration.getConfFile();
+        String amoebaConfigPath = amoebaHome + File.separator + "conf" + File.separator + KernelProps.getConfFile();
         try {
-            FileReader reader = new FileReader(propFilePath);
-            amoebaProps.load(reader);
-        } catch (FileNotFoundException fnfe) {
-            System.out.println("Configuration file not found");
-            System.out.println(fnfe.toString());
-            System.exit(1);
-        } catch (IOException ioe) {
-            System.out.println("Exception while loading configuration file");
-            System.out.println(ioe.toString());
+            File amoebaConfigFile = new File(amoebaConfigPath);
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+            document = dBuilder.parse(amoebaConfigFile);
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            System.out.println(e.toString());
             System.exit(1);
         }
     }
 
     /**
-     * Read properties from amoeba.conf file in AMOEBA_HOME/conf directory.
+     * Read properties from amoeba.xml file in AMOEBA_HOME/conf directory.
      */
     private static void readAmoebaConfig() {
-        conf.setHostname(amoebaProps.getProperty("hostname"));
-        conf.setPort(Integer.parseInt(amoebaProps.getProperty("port")));
+        // read user-configurable kernel props
+        NodeList kernelNodesList = document.getElementsByTagName("kernel");
+        Node kernelNode = kernelNodesList.item(0);
+        NamedNodeMap kernelNamedNodeMap = kernelNode.getAttributes();
+        
+        // read hostname or IP address
+        conf.setHostname(kernelNamedNodeMap.getNamedItem("hostname").getNodeValue());
+        conf.setPort(Integer.parseInt(kernelNamedNodeMap.getNamedItem("port").getNodeValue()));
 
         // read buffer properties
-        conf.setReadBufferCapacity(Integer.parseInt(amoebaProps.getProperty("readBufferCapacity")) * 1024);
+        conf.setReadBufferCapacity(Integer.parseInt(kernelNamedNodeMap.getNamedItem("readBufferCapacity").getNodeValue()) * 1024);
         
         // request processing threads, core and max set to same as LinkedBlockingQueue when used 
         // in threadPool does not have take max threads into account.
-        int requestProcessingThreadCount = Integer.parseInt(amoebaProps.getProperty("requestProcessingThreads"));
+        int requestProcessingThreadCount = Integer.parseInt(kernelNamedNodeMap.getNamedItem("requestProcessingThreads").getNodeValue());
         conf.setMinRequestProcessingThreads(requestProcessingThreadCount);
         conf.setMaxRequestProcessingThreads(requestProcessingThreadCount);
                 
         // web root
-        conf.setDocumentRoot(amoebaProps.getProperty("documentRoot"));
-        conf.setVirtualHost(Boolean.parseBoolean(amoebaProps.getProperty("virtualHost")));
+        conf.setDocumentRoot(kernelNamedNodeMap.getNamedItem("documentRoot").getNodeValue());
+        conf.setVirtualHost(Boolean.parseBoolean(kernelNamedNodeMap.getNamedItem("virtualHost").getNodeValue()));
 
         // compression
-        conf.setCompression(Boolean.parseBoolean(amoebaProps.getProperty("compression")));
+        conf.setCompression(Boolean.parseBoolean(kernelNamedNodeMap.getNamedItem("compression").getNodeValue()));
         
         // log file
-        conf.setErrLogFileSize(1024 * Integer.parseInt(amoebaProps.getProperty("errorLogFileSize")));
-        conf.setErrLogFileCount(Integer.parseInt(amoebaProps.getProperty("totalErrorLogFiles")));
+        conf.setErrLogFileSize(1024 * Integer.parseInt(kernelNamedNodeMap.getNamedItem("errorLogFileSize").getNodeValue()));
+        conf.setErrLogFileCount(Integer.parseInt(kernelNamedNodeMap.getNamedItem("totalErrorLogFiles").getNodeValue()));
 
         // maintenance
-        conf.setMaintenance(Boolean.parseBoolean(amoebaProps.getProperty("maintenance")));
+        conf.setMaintenance(Boolean.parseBoolean(kernelNamedNodeMap.getNamedItem("maintenance").getNodeValue()));
         
         // cache
-        conf.setMaxAge(Long.parseLong(amoebaProps.getProperty("maxAge")));
-        conf.setInitialCacheSize(Integer.parseInt(amoebaProps.getProperty("initialCacheSize")));
-        conf.setCacheCapacity(Integer.parseInt(amoebaProps.getProperty("cacheCapacity")));
+        conf.setMaxAge(Long.parseLong(kernelNamedNodeMap.getNamedItem("maxAge").getNodeValue()));
+        conf.setInitialCacheSize(Integer.parseInt(kernelNamedNodeMap.getNamedItem("initialCacheSize").getNodeValue()));
+        conf.setCacheCapacity(Integer.parseInt(kernelNamedNodeMap.getNamedItem("cacheCapacity").getNodeValue()));
         
         // channel timeout
-        conf.setIdleChannelTimeout(Integer.parseInt(amoebaProps.getProperty("idleChannelTimeout")));
+        conf.setIdleChannelTimeout(Integer.parseInt(kernelNamedNodeMap.getNamedItem("idleChannelTimeout").getNodeValue()));
+        
+        // read resource properties eg: file extn, mime type and the resource properties like if the
+        // file is binary, or can be compressed or cached
+        HashMap<String, ResourceProps> resourcePropsMap = new HashMap<>();
+        HashMap<String, Boolean> contentTypeBinaryMap = new HashMap<>();
+        NodeList resourceNodesList = document.getElementsByTagName("resource");
+        for(int i=0; i < resourceNodesList.getLength(); i++){
+            Node resourceNode = resourceNodesList.item(i);
+            NamedNodeMap resourceNamedNodeMap = resourceNode.getAttributes();
+            
+            ResourceProps resourceProps = new ResourceProps();
+            
+            String fileExt = resourceNamedNodeMap.getNamedItem("extension").getNodeValue();
+            String resourceMimeType = resourceNamedNodeMap.getNamedItem("mimeType").getNodeValue();
+            boolean isResourceBinary = Boolean.parseBoolean(resourceNamedNodeMap.getNamedItem("binary").getNodeValue());
+            boolean toCompressResource = Boolean.parseBoolean(resourceNamedNodeMap.getNamedItem("compress").getNodeValue());
+            boolean toCacheResource = Boolean.parseBoolean(resourceNamedNodeMap.getNamedItem("cache").getNodeValue());
+            
+            resourceProps.setContentType(resourceMimeType);
+            resourceProps.setIsBinary(isResourceBinary);
+            resourceProps.setToCompress(toCompressResource);
+            resourceProps.setToCache(toCacheResource);
+            resourcePropsMap.put(fileExt, resourceProps);
+            
+            // This map is used by RequestProcessing thread to find out if the request
+            // content is binary
+            contentTypeBinaryMap.put(resourceMimeType, isResourceBinary);
+        }
+        
+        // Initialize ResourceProps list
+        ResourceProps.setResourcePropsMap(resourcePropsMap);
+        ResourceProps.setContentTypeBinaryMap(contentTypeBinaryMap);
     }
 
     /**
@@ -229,20 +273,20 @@ public class Main {
         ArrayList<String> contexts = new ArrayList<>();
         if(!conf.isVirtualHost()){
             // eg: /var/www/default/CLASSES/context.conf
-            String context = Configuration.getDefaultContext();
+            String context = KernelProps.getDefaultContext();
             String defaultContextConfPath = documentRoot.toString() + File.separator + context + 
-                                            File.separator + Configuration.getDynamicClassTag() + 
-                                            File.separator + Configuration.getContextConfFile();
+                                            File.separator + KernelProps.getDynamicClassTag() + 
+                                            File.separator + KernelProps.getContextConfFile();
             contextConfPaths.add(defaultContextConfPath);
             contexts.add(context);
         } else {
             for(File file : docRootFiles){
-                if(file.isDirectory() & !file.getName().equalsIgnoreCase(Configuration.getDefaultContext())){
+                if(file.isDirectory() & !file.getName().equalsIgnoreCase(KernelProps.getDefaultContext())){
                     String context = file.getName();
                     // eg: /var/www/xyz/CLASSES/context.conf
                     String contextConfPath = documentRoot.toString() + File.separator + context +
-                                             File.separator + Configuration.getDynamicClassTag() + 
-                                             File.separator + Configuration.getContextConfFile();
+                                             File.separator + KernelProps.getDynamicClassTag() + 
+                                             File.separator + KernelProps.getContextConfFile();
                     contextConfPaths.add(contextConfPath);
                     contexts.add(context);
                 }
@@ -268,9 +312,9 @@ public class Main {
                 }
                 RuntimeData.getContextMap().put(contexts.get(index), dynamicClassesMap);
             } catch (FileNotFoundException fnfe) {
-                logger.log(Level.WARNING, "Configuration file, context.conf, is not found for the context {0}", contexts.get(index));
+                logger.log(Level.WARNING, "Configuration file, context.conf, is not found for the context {0}", fnfe);
             } catch (IOException ioe) {
-                logger.log(Level.WARNING, "Error while parsing configuration file, context.conf, for the context {0}", contexts.get(index));
+                logger.log(Level.WARNING, "Error while parsing configuration file, context.conf, for the context {0}", ioe);
             }
             index++;
         }
@@ -292,8 +336,8 @@ public class Main {
         RuntimeData.setSelectionKeyQueue(new LinkedBlockingQueue<SelectionKey>());
         RuntimeData.setCacheMap(new ConcurrentHashMap<String, LRUResourceCache>());
         RuntimeData.setClassLoaderMap(new ConcurrentHashMap<String, AmoebaClassLoader>());
-        RuntimeData.setSelectionKeyTimestampMap(new HashMap<SelectionKey, Long>(Configuration.getInitialSelectionKeysSize(),
-                                                               Configuration.getTotalSelectionKeysSize()));
+        RuntimeData.setSelectionKeyTimestampMap(new HashMap<SelectionKey, Long>(KernelProps.getInitialSelectionKeysSize(),
+                                                               KernelProps.getTotalSelectionKeysSize()));
         RuntimeData.setIdleSelectionKeyList(new ArrayList<SelectionKey>());
         RuntimeData.setContextMap(new ConcurrentHashMap<String, HashMap<String, String>>());
         RuntimeData.setContextDynamicInstanceMap(new ConcurrentHashMap<String, HashMap<String, DynamicRequest>>());
@@ -639,7 +683,7 @@ public class Main {
                 // new line - end of headers
                 respHeaders.append(Utilities.getHttpEOL());
 
-                byte headerBytes[] = respHeaders.toString().getBytes(Configuration.getCharsetName());
+                byte headerBytes[] = respHeaders.toString().getBytes(KernelProps.getCharsetName());
                 ByteBuffer respHeadersBuffer = ByteBuffer.allocate(headerBytes.length);
                 respHeadersBuffer.put(headerBytes);
                 respHeadersBuffer.flip();
@@ -756,7 +800,7 @@ public class Main {
                 // new line - end of headers
                 responseHeaders.append(Utilities.getHttpEOL());
 
-                byte headerBytes[] = responseHeaders.toString().getBytes(Configuration.getCharsetName());
+                byte headerBytes[] = responseHeaders.toString().getBytes(KernelProps.getCharsetName());
                 ByteBuffer responseHeadersBuffer = ByteBuffer.allocate(headerBytes.length);
                 responseHeadersBuffer.put(headerBytes);
                 responseHeadersBuffer.flip();
@@ -764,7 +808,7 @@ public class Main {
                 totalBytesSent = socketChannel.write(responseHeadersBuffer);
                 
             } else {
-                byte[] partialContent = new byte[Configuration.getPartialResponseSize()];
+                byte[] partialContent = new byte[KernelProps.getPartialResponseSize()];
                 MappedByteBuffer mappedByteBuffer = responseBean.getMappedByteBuffer();
                 if(mappedByteBuffer.hasRemaining()){
                     int bodySize = Math.min(mappedByteBuffer.remaining(), partialContent.length);
@@ -784,7 +828,7 @@ public class Main {
             // this will be processed in Main as part
             // of even processing loop
             if(!eof){
-                Configuration.getLogger().log(Level.FINER, 
+                KernelProps.getLogger().log(Level.FINER, 
                                             "{0} - {1} - {2} - {3} bytes {4} ", 
                                             new Object[]{clientAddr, 
                                             resource,
@@ -799,7 +843,7 @@ public class Main {
                 selectionKeyLargeFileMap.remove(key);
             }
         } catch(IOException ioe){
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
+            KernelProps.getLogger().log(Level.WARNING, Utilities.stackTraceToString(ioe), ioe);
         
             // cancel the selection key and close the channel
             idleSelectionKeyList.add(key);
@@ -819,7 +863,7 @@ public class Main {
 
     private static boolean decodeRequest(SelectionKey key, ByteBuffer readBuffer, int bytesRead) throws IOException {
         // convert request in bytebuffer to string format
-        String rawRequest = Configuration.getCharset().decode(readBuffer).toString();
+        String rawRequest = KernelProps.getCharset().decode(readBuffer).toString();
         
         // trim the readBuffer into byte array by removing unfilled buffer
         byte[] readBufferBytes = new byte[bytesRead];
@@ -899,7 +943,7 @@ public class Main {
         return activeChannelsCount;
     }
    
-    private static Properties amoebaProps;
+    private static Document document;
     private static ConsoleHandler console;
     private static FileHandler logFile;
     private static FileHandler accessLog;
@@ -907,8 +951,8 @@ public class Main {
     private static ServerSocketChannel serverSocketChannel;
     private static File logDir;
     private static SimpleDateFormat sdf;
-    private static final Logger logger = Configuration.getLogger();;
-    private static Configuration conf;
+    private static final Logger logger = KernelProps.getLogger();;
+    private static KernelProps conf;
     private static int channelTimeout;
     private static AmoebaMonitoringAgent amoebaJMXAgent;
     

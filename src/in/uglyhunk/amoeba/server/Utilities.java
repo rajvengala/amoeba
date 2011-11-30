@@ -10,6 +10,7 @@ package in.uglyhunk.amoeba.server;
  * @author uglyhunk
  */
 public class Utilities {
+    
     public static String stackTraceToString(Throwable e){
         StringBuilder sb = new StringBuilder();
         sb.append(e.toString()).append(EOL);

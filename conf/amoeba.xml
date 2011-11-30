@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<amoeba-config>
+    <!-- 
+        ### server ###
+        hostname - ipaddr/hostname
+        port - port number to listen to
+        readBufferCapacity - read buffer size in KB
+        requestProcessingThreads - number of request processing threads
+        documentRoot - webroot, no trailing slash
+        virtualHost - enable or disable virtual host
+        compression - enable or disable gzip compress of response/resources
+
+        ### resource cache on the server ###
+        initialCacheSize - intial number of cache entries
+        cacheCapacity - maximum cache entries
+        
+        ### cache properties for a resource in browser
+        maxAge- time, in seconds, for the cached content to become stale
+
+        ### log files ###
+        errorLogFileSize - size of error log fine in KB
+        totalErrorLogFiles - maximum number of log files to create before reusing the oldest one
+        
+        idleChannelTimeout - tcp channel timeout on the server in seconds
+        maintenance - enable/disable maintenance mode
+    -->
+    <kernel
+        hostname="localhost"
+        port="6781"
+        readBufferCapacity="8"
+        requestProcessingThreads="20"
+        documentRoot="D:/to_backup/my_projects/amoeba/testapps"
+        virtualHost="false"
+        compression="true"
+        initialCacheSize="100"
+        cacheCapacity="200"
+        maxAge="60"
+        errorLogFileSize="500"
+        totalErrorLogFiles="10"
+        idleChannelTimeout="5"
+        maintenance="false"
+    />
+    
+    <general>
+        <mime>
+            <!--
+                extension - resource/file extension
+                contenType - mime type of the resource/file
+                binary - is the resource/file binary ?
+                compress - should the resource be compressed before sending to the client ?
+                cache - should be resource be cached on the server ?
+            -->
+            <resource extension="html" mimeType="text/html" binary="false" compress="true" cache="false"/>
+            <resource extension="htm" mimeType="text/html" binary="false" compress="true" cache="false"/>
+            <resource extension="txt" mimeType="text/plain" binary="false" compress="true" cache="false"/>
+            <resource extension="xml" mimeType ="application/atom+xml" binary="false" compress="true" cache="false"/>
+            <resource extension="css" mimeType="text/css" binary="false" compress="true" cache="true"/>
+            <resource extension="js" mimeType="application/x-javascript" binary="false" compress="true" cache="true"/>
+            <resource extension="pdf" mimeType="application/pdf" binary="false" compress="true" cache="false"/>
+            <resource extension="jpg" mimeType="image/jpg" binary="true" compress="false" cache="true"/>
+            <resource extension="jpeg" mimeType="image/jpeg" binary="true" compress="false" cache="true"/>
+            <resource extension="png" mimeType="image/png" binary="true" compress="false" cache="true"/>
+            <resource extension="bmp" mimeType="image/bmp" binary="true" compress="false" cache="true"/>
+            <resource extension="gif" mimeType="image/gif" binary="true" compress="false" cache="true"/>
+            <resource extension="zip" mimeType="application/zip" binary="true" compress="false" cache="false"/>
+            <resource extension="gz" mimeType="application/x-gzip" binary="true" compress="false" cache="false"/>
+            <resource extension="swf" mimeType="application/x-shockwave-flash" binary="true" compress="false" cache="true"/>
+            <resource extension="mp4" mimeType="video/mp4" binary="true" compress="false" cache="false"/>
+            <resource extension="exe" mimeType="application/octet-stream" binary="true" compress="false" cache="false"/>
+            <resource extension="bin" mimeType="application/octet-stream" binary="true" compress="false" cache="false"/>
+            <resource extension="avi" mimeType="video/x-msvideo" binary="true" compress="false" cache="false"/>         
+        </mime>     
+    </general> 
+</amoeba-config>  

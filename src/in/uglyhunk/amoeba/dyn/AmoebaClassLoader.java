@@ -4,7 +4,7 @@
  */
 package in.uglyhunk.amoeba.dyn;
 
-import in.uglyhunk.amoeba.server.Configuration;
+import in.uglyhunk.amoeba.configuration.KernelProps;
 import in.uglyhunk.amoeba.server.Utilities;
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,7 +30,7 @@ public class AmoebaClassLoader extends ClassLoader {
         try{
             classBytes = loadClassBytes(className);
         } catch(IOException ioe){
-            Configuration.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
+            KernelProps.getLogger().log(Level.SEVERE, Utilities.stackTraceToString(ioe), ioe);
         }
         
         Class<?> cl = defineClass(className, classBytes, 0, classBytes.length);
@@ -46,7 +46,7 @@ public class AmoebaClassLoader extends ClassLoader {
         ByteBuffer classByteBuffer = null;
         try {
             String classNamePath = className.replace('.', '/');
-            File f = new File(absoluteContextPath + File.separator + Configuration.getDynamicClassTag() + File.separator + classNamePath + ".class");
+            File f = new File(absoluteContextPath + File.separator + KernelProps.getDynamicClassTag() + File.separator + classNamePath + ".class");
             fis = new FileInputStream(f);
             int classSize  = (int)f.length();
             fc = fis.getChannel();

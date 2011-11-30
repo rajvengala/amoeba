@@ -4,7 +4,7 @@
  */
 package in.uglyhunk.amoeba.management;
 
-import in.uglyhunk.amoeba.server.Configuration;
+import in.uglyhunk.amoeba.configuration.KernelProps;
 import in.uglyhunk.amoeba.server.Utilities;
 import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
@@ -35,7 +35,7 @@ public class AmoebaMonitoringAgent {
              amoebaObjectName = new ObjectName("in.uglyhunk.amoeba.management:name=amoeba");
              mbs.registerMBean(njasMbean, amoebaObjectName);
         } catch(MalformedObjectNameException | InstanceAlreadyExistsException | MBeanRegistrationException | NotCompliantMBeanException e) {
-            Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
+            KernelProps.getLogger().log(Level.WARNING, Utilities.stackTraceToString(e), e);
         }
     }
  

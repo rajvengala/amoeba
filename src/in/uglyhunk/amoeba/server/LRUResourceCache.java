@@ -4,6 +4,7 @@
  */
 package in.uglyhunk.amoeba.server;
 
+import in.uglyhunk.amoeba.configuration.KernelProps;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,7 +41,7 @@ public class LRUResourceCache extends LinkedHashMap<String, byte[]> {
     public static LRUResourceCache getCache(String contextName) {
         LRUResourceCache lruCache = null;
         ConcurrentHashMap<String, LRUResourceCache> cacheMap = RuntimeData.getCacheMap();
-        Configuration conf = Configuration.getInstance();
+        KernelProps conf = KernelProps.getInstance();
         
         if (cacheMap.containsKey(contextName)) {
             lruCache = (LRUResourceCache) cacheMap.get(contextName);

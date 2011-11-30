@@ -5,6 +5,7 @@
 
 package in.uglyhunk.amoeba.server;
 
+import in.uglyhunk.amoeba.configuration.KernelProps;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +34,7 @@ public class AmoebaThreadPoolExecutor extends ThreadPoolExecutor{
     public void afterExecute(Runnable r, Throwable t){
        super.afterExecute(r, t);
        if(t != null){
-           Configuration.getLogger().log(Level.WARNING, Utilities.stackTraceToString(t), t);
+           KernelProps.getLogger().log(Level.WARNING, Utilities.stackTraceToString(t), t);
        }
     }
 }
