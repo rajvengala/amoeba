@@ -312,9 +312,9 @@ public class Main {
                 }
                 RuntimeData.getContextMap().put(contexts.get(index), dynamicClassesMap);
             } catch (FileNotFoundException fnfe) {
-                logger.log(Level.WARNING, "Configuration file, context.conf, is not found for the context {0}", fnfe);
+                logger.log(Level.WARNING, "Configuration file, context.conf, is not found for the context {0}", contexts.get(index));
             } catch (IOException ioe) {
-                logger.log(Level.WARNING, "Error while parsing configuration file, context.conf, for the context {0}", ioe);
+                logger.log(Level.WARNING, "Error while parsing configuration file, context.conf, for the context {0}", contexts.get(index));
             }
             index++;
         }
@@ -381,18 +381,18 @@ public class Main {
         
         logger.log(Level.INFO, "DocumentRoot - {0}", conf.getDocumentRoot());
         logger.log(Level.INFO, "VirtualHost - {0}", conf.isVirtualHost());
-        logger.log(Level.INFO, "Compression - {0}", conf.getCompression());
+        logger.log(Level.INFO, "Compress resources - {0}", conf.getCompression());
 
         logger.log(Level.INFO, "Error log file size - {0} KB", conf.getErrLogFileSize() / 1024);
         logger.log(Level.INFO, "Total error log files - {0}", conf.getErrLogFileCount());
 
         logger.log(Level.INFO, "In maintenance - {0}", conf.isMaintenance());
-        logger.log(Level.INFO, "Max Age - {0} seconds for cacheable resources", conf.getMaxAge());
+        logger.log(Level.INFO, "Max age before the resources becoming stale at the client - {0} seconds", conf.getMaxAge());
 
-        logger.log(Level.INFO, "Cache : Initial size - {0}", conf.getInitialCacheSize());
-        logger.log(Level.INFO, "Cache : Capacity - {0}", conf.getCacheCapacity());
+        logger.log(Level.INFO, "Server cache : Initial size - {0}", conf.getInitialCacheSize());
+        logger.log(Level.INFO, "Server cache : Capacity - {0}", conf.getCacheCapacity());
         
-        logger.log(Level.INFO, "Channel : Idle timeout - {0} seconds", conf.getIdleChannelTimeout());
+        logger.log(Level.INFO, "TCP Channel : Idle timeout - {0} seconds", conf.getIdleChannelTimeout());
     }
     
     private static void startJMXAgent(){
