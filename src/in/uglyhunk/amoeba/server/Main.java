@@ -552,11 +552,7 @@ public class Main {
             // create a request bean
             requestBean = new RequestBean();
             requestBean.setSelectionKey(key);
-            
-//            logger.log(Level.FINER, "{0} - {1}", 
-//                        new Object[]{socketChannel.socket().getRemoteSocketAddress().toString().split("/")[1], 
-//                        new String(readBuffer.array()).split("\r\n")[0]});
-            
+                        
             // put the selection key of the request in the queue.
             // responses will be sent back in the order as appeared in this queue
             selectionKeyQueue.put(key);
@@ -702,8 +698,6 @@ public class Main {
                     respByteBuffer.put(respBodyBuffer.array());
                 }
 
-                //System.out.println("Write - " + socketChannel.socket().getRemoteSocketAddress());
-                
                 respByteBuffer.flip();
                 int totalBytesSent = socketChannel.write(respByteBuffer);
 
